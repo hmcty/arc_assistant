@@ -1,0 +1,82 @@
+# Updates List
+
+Here is the list of all the updates that I made on this template.
+
+### Version 2.8
+
+* Blacklisted users are now **saved** in the file
+* Moved config file to JSON
+* Moved the blacklist in a separate file (`blacklist.json`)
+* The colors are no longer saved in the config file
+
+### Version 2.7
+
+* Added a check for `commands.MissingRequiredArgument` in the error handler
+* Added a disclaimer section in the [README](README.md) file
+* Added the latency of the bot in the `ping` command
+* Created the [TODO list](TODO.md) file
+* Fixed some error embeds having success (green) colors
+* Removed an unnecessary `self.bot.logout()` statement
+* Removed the `dick` command, as I want to keep this template safe for work
+* Renamed the names of the arguments in some commands
+* The bot now **tries** to send an embed in the private message of the command author for the `invite` and `server`
+  commands, if this was not successful it will be sent in the channel
+
+### Version 2.6
+
+* Added new `dailyfact` command that gives a random fact every day, using cool down
+* Fixed some typos in [README.md](README.md)
+* Remade the `on_command_error` event for `CommandOnCooldown`
+
+### Version 2.5
+
+* Code reformat
+* Rewrote the status task
+* Now using the `has_permissions` decorator for user permissions
+* Using `.yaml` instead of `.py` file for config
+
+### Version 2.4.3
+
+* Fixed intents for `serverinfo` command
+
+### Version 2.4.2
+
+* Blacklisted users are being ignored when executing a command
+
+### Version 2.4.1
+
+* Added config import to moderation cog
+
+### Version 2.4
+
+* Added some fun commands
+* Colors are saved in the [config file](config.py) for easier usage
+* Cogs are now being loaded automatically
+* Fixed some typos
+
+### Version 2.3
+
+* Made the kick command actually kick
+* Added a template cog to create cogs easily
+
+### Version 2.2
+
+* Fixed the purge command
+* Made the error embeds actually red...
+
+### Version 2.1
+
+* Made the help command dynamic
+* Added a small description to all commands
+* Added intents when creating the bot
+
+### Version 2.0
+
+* Added cogs
+* Added f-strings and removed `.format()`
+* Created [config file](config.py) for easier setup
+
+### Version 1.2
+
+* Added blacklist command
+* Removed commands cool down
