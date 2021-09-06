@@ -1,9 +1,9 @@
 """"
+Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
 Copyright © Krypton 2021 - https://github.com/kkrypt0nn
 Description:
-This is a template to create your own discord bot in python.
 
-Version: 2.8
+
 """
 
 import json
@@ -53,6 +53,7 @@ intents.members = True
 """
 
 intents = discord.Intents.default()
+intents.members = True
 
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
 
@@ -65,14 +66,14 @@ async def on_ready():
     print(f"Python version: {platform.python_version()}")
     print(f"Running on: {platform.system()} {platform.release()} ({os.name})")
     print("-------------------")
-    status_task.start()
+    await status_task()
 
 
 # Setup the game status task of the bot
-@tasks.loop(minutes=1.0)
 async def status_task():
-    statuses = ["with you!", "with Krypton!", f"{config['bot_prefix']}help", "with humans!"]
-    await bot.change_presence(activity=discord.Game(random.choice(statuses)))
+    await bot.change_presence(activity=discord.Game(
+        "github.com/hmccarty/arc_assistant"
+    ))
 
 
 # Removes the default help command of discord.py to be able to create our custom help command.
@@ -101,6 +102,14 @@ async def on_message(message):
         blacklist = json.load(file)
     if message.author.id in blacklist["ids"]:
         return
+
+    # Check if message is verification-related
+    if message.guild == None:
+        verification = bot.get_cog("verification")
+        if verification is not None:
+            await verification.handle_message(message)
+            return
+
     await bot.process_commands(message)
 
 

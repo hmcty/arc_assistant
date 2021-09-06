@@ -1,72 +1,16 @@
-# Python Discord Bot Template
+# ARC Discord Assistant
+[![Discord](https://img.shields.io/discord/868977679590883420)](https://discord.gg/xPJfDaztvS)
 
-<p align="center">
-  <a href="//discord.gg/HzJ3Gfr"><img src="https://img.shields.io/discord/739934735387721768?logo=discord"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template/releases"><img src="https://img.shields.io/github/v/release/kkrypt0nn/Python-Discord-Bot-Template"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template/commits/main"><img src="https://img.shields.io/github/last-commit/kkrypt0nn/Python-Discord-Bot-Template"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template/releases"><img src="https://img.shields.io/github/downloads/kkrypt0nn/Python-Discord-Bot-Template/total"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template/blob/main/LICENSE.md"><img src="https://img.shields.io/github/license/kkrypt0nn/Python-Discord-Bot-Template"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template"><img src="https://img.shields.io/github/languages/code-size/kkrypt0nn/Python-Discord-Bot-Template"></a>
-  <a href="//github.com/kkrypt0nn/Python-Discord-Bot-Template/issues"><img src="https://img.shields.io/github/issues-raw/kkrypt0nn/Python-Discord-Bot-Template"></a>
-</p>
+Helps Purdue ARC run our Discord server.
 
-This repository is a template that everyone can use for the start of their discord bot.
+Derived from [kkrypt0nn's template](https://github.com/kkrypt0nn/Python-Discord-Bot-Template).
 
-When I first started creating my discord bot it took me a while to get everything setup and working with cogs and more.
-I would've been happy if there were any template existing. However, there wasn't any existing template. That's why I
-decided to create my own template to let <b>you</b> guys create your discord bot easily.
+## Setup
 
-Please note that this template is not supposed to be the best template, but a good template to start learning how
-discord.py works and to make your own bot easily.
+Invite your bot on servers using the following invite:
+https://discordapp.com/oauth2/authorize?&client_id=YOUR_APPLICATION_ID_HERE&scope=bot&permissions=8 
 
-If you plan to use this template to make your own template or bot, you **have to**:
-
-- Keep the credits, and a link to this repository in all the files that contains my code
-- Keep the same license
-
-See [the license file](https://github.com/kkrypt0nn/Python-Discord-Bot-Template/blob/master/LICENSE.md) for more
-information, I reserve the right to take down any repository that does not meet these requirements.
-
-## Support
-
-Before requesting support, you should know that this template requires you to have at least a **basic knowledge** of
-Python and the library is made for advanced users. Do not use this template if you don't know the
-basics. [Here's](https://pythondiscord.com/pages/resources) a link for resources to learn python.
-
-If you need some help for something, do not hesitate to join my discord server [here](https://discord.gg/HzJ3Gfr).
-
-All the updates of the template are available [here](UPDATES.md).
-
-## Disclaimer
-
-When using the template you confirm that you have read the [license](LICENSE.md) and comprehend that I can take down
-your repository if you do not meet these requirements.
-
-Please do not open issues or pull requests about things that are written in the [TODO file](TODO.md), they are **
-already** under work for the version 3.0 of the template.
-
-## How to download it
-
-This repository is now a template, on the top left you can simply click on "**Use this template**" to create a GitHub
-repository based on this template.
-
-Alternatively you can do the following:
-
-* Clone/Download the repository
-    * To clone it and get the updates you can definitely use the command
-      `git clone`
-* Create a discord bot [here](https://discord.com/developers/applications)
-* Get your bot token
-* Invite your bot on servers using the following invite:
-  https://discordapp.com/oauth2/authorize?&client_id=YOUR_APPLICATION_ID_HERE&scope=bot&permissions=8 (
-  Replace `YOUR_APPLICATION_ID_HERE` with the application ID)
-
-## How to set up
-
-To set up the bot I made it as simple as possible. I now created a [config.json](config.json) file where you can put the
-needed things to edit.
-
-Here is an explanation of what everything is:
+Configuration handled in `config.json`:
 
 | Variable                  | What it is                                                            |
 | ------------------------- | ----------------------------------------------------------------------|
@@ -77,11 +21,25 @@ Here is an explanation of what everything is:
 
 In the [blacklist](blacklist.json) file you now can add IDs (as integers) in the `ids` list.
 
-## How to start
+### OLD:
+Add app to Heroku, then configure scheduled run of the following command:
 
-To start the bot you simply need to launch, either your terminal (Linux, Mac & Windows), or your Command Prompt (
-Windows)
-.
+```bash
+python send_updates.py
+```
+
+The set schedule helps parametrize when updates are sent to discord.
+
+`send_updates.py` is currently written to obtain daily events, so the command should be scheduled to run daily.
+
+This application relies on four environment variables:
+
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: json string given by Google API service account
+- `CALENDAR_ID`: ID for respective Google Calendar
+- `DISCORD_TOKEN`: bot token given by Discord
+- `REDIS_URL`: URL for Redis file store (provided by Redis Heroku application)
+
+### END OLD
 
 Before running the bot you will need to install all the requirements with this command:
 
@@ -89,44 +47,76 @@ Before running the bot you will need to install all the requirements with this c
 pip install -r requirements.txt
 ```
 
-If you have multiple versions of python installed (2.x and 3.x) then you will need to use the following command:
-
-```
-python3 bot.py
-```
-
-or eventually
+Then you can run:
 
 ```
 python3.8 bot.py
 ```
 
-<br>
+## Commands
 
-If you have just installed python today, then you just need to use the following command:
+### General
+```
+.status
+```
+Prints general status information.
 
 ```
-python bot.py
+.poll <title>
 ```
+Creates simple three option poll.
 
-## Issues or Questions
+```
+.8ball
+```
+Makes a practical decision.
 
-If you have any issues or questions of how to code a specific command, you can:
+```
+.create_role_menu emoji_1 role_1...
+```
+Creates and prints a new role menu.
 
-* Join my discord server [here](https://discord.gg/HzJ3Gfr)
-* Post them [here](https://github.com/kkrypt0nn/Python-Discord-Bot-Template/issues)
+### Calendar
+```
+.get_todays_events
+```
+Prints a list of scheduled events for the current day.
 
-Me or other people will take their time to answer and help you.
+```
+.get_weeks_events
+```
+Prints a list of scheduled events for the current week.
 
-## Versioning
+### Currency
+```
+.thanks <user>
+```
+Grants member a single ARC coin.
 
-We use [SemVer](http://semver.org) for versioning. For the versions available, see
-the [tags on this repository](https://github.com/kkrypt0nn/Python-Discord-Bot-Template/tags).
+```
+.balance
+```
+Prints current balance of ARC coins.
 
-## Built With
+```
+.leaderboard
+```
+Prints top 5 members with most amount of ARC coins.
 
-* [Python 3.8](https://www.python.org/)
+### Domain Verification
+```
+.verify
+```
+DMs user to verify email address is under Purdue domain.
 
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE.md](LICENSE.md) file for details
+
+
+**ARC Assistant** handles a variety of functions on the ARC discord channel such as:
+- Verifying student emails
+- Posting upcoming events
+- Gifting ARC coins
+
+[![Discord](https://img.shields.io/discord/868977679590883420)](https://discord.gg/xPJfDaztvS)

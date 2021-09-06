@@ -1,9 +1,9 @@
 """"
+Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
 Copyright © Krypton 2021 - https://github.com/kkrypt0nn
-Description:
-This is a template to create your own discord bot in python.
 
-Version: 2.7
+Description:
+Enables moderation of bot usage.
 """
 
 import json
@@ -22,7 +22,7 @@ else:
         config = json.load(file)
 
 
-class owner(commands.Cog, name="owner"):
+class Owner(commands.Cog, name="owner"):
     def __init__(self, bot):
         self.bot = bot
 
@@ -177,4 +177,4 @@ class owner(commands.Cog, name="owner"):
 
 
 def setup(bot):
-    bot.add_cog(owner(bot))
+    bot.add_cog(Owner(bot))

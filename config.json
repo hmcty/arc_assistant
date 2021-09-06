@@ -1,9 +1,10 @@
 {
-  "bot_prefix": "YOUR_BOT_PREFIX_HERE",
-  "token": "YOUR_BOT_TOKEN_HERE",
-  "application_id": "YOUR_APPLICATION_ID_HERE",
-  "owners": [
-    123456789,
-    987654321
-  ]
+  "bot_prefix": ".",
+  "token": "ODg0MTkxMjE1OTQ2NDQwODI0.YTU5PQ.WvALsgv2GXRL5gHXNvAIMmfWxeo",
+  "application_id": 884191215946440824,
+  "server_id": 868977679590883420,
+  "owners": [],
+  "db": "./bot.db",
+  "sendgrid_email": "autonomy@purdue.edu",
+  "sendgrid_api_key": "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"
 }
