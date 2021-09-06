@@ -1,10 +1,10 @@
 {
   "bot_prefix": ".",
-  "token": "",
-  "application_id": ,
-  "server_id":,
+  "token": "YOUR_TOKEN",
+  "application_id": 0,
+  "server_id": 0,
   "owners": [],
   "db": "./bot.db",
-  "sendgrid_email": "",
-  "sendgrid_api_key": ""
+  "sendgrid_email": "SENDGRID_EMAIL",
+  "sendgrid_api_key": "SENDGRID_API_KEY"
 }
