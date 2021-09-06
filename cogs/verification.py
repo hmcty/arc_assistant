@@ -33,8 +33,7 @@ cur = con.cursor()
 cur.execute("""CREATE TABLE IF NOT EXISTS verification(
     member INT,
     code INT,
-    verified INT);
-""")
+    verified INT);""")
 con.commit()
 
 
@@ -146,6 +145,27 @@ class Verification(commands.Cog, name="verification"):
             await context.message.author.send(
                 "Reply here with your @{} email address.".format(DOMAIN_NAME)
             )
+
+    @commands.command(name="clear")
+    async def clear(self, context):
+        """
+        Deletes cached verification information.
+
+        OWNER-ONLY COMMAND.
+        """
+        if context.message.author.id in config["owners"]:
+            cur.execute("DELETE FROM verification")
+            con.commit()
+
+            refid = "<@" + str(context.message.author.id) + ">"
+            await context.send(refid + " verification cache cleared.")
+        else:
+            embed = discord.Embed(
+                title="Error!",
+                description="You don't have the permission to use this command.",
+                color=0xE02B2B
+            )
+            await context.send(embed=embed)
 
 
 def setup(bot):

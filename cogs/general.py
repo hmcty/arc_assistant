@@ -8,13 +8,23 @@ Holds common utility commands.
 
 import json
 import os
-import platform
 import random
 import sys
+import sqlite3
 
 import discord
 from discord.ext import commands
 
+if not os.path.isfile("config.json"):
+    sys.exit("'config.json' not found! Please add it and try again.")
+else:
+    with open("config.json") as file:
+        config = json.load(file)
+
+con = sqlite3.connect(config["db"])
+cur = con.cursor()
+cur.execute('CREATE TABLE IF NOT EXISTS rolemenu(menu INT, role TEXT, emoji TEXT)')
+con.commit()
 
 class General(commands.Cog, name="general"):
     def __init__(self, bot):
@@ -51,26 +61,102 @@ class General(commands.Cog, name="general"):
         """
         answers = ['It is certain.', 'It is decidedly so.', 'You may rely on it.', 'Without a doubt.',
                    'Yes - definitely.', 'As I see, yes.', 'Most likely.', 'Outlook good.', 'Yes.',
-                   'Signs point to yes.', 'Reply hazy, try again.', 'Ask again later.', 'Better not tell you now.',
-                   'Cannot predict now.', 'Concentrate and ask again later.', 'Don\'t count on it.', 'My reply is no.',
+                   'Signs point to yes.', 'My reply is no.',
                    'My sources say no.', 'Outlook not so good.', 'Very doubtful.']
-        embed = discord.Embed(
-            title="**My Answer:**",
-            description=f"{answers[random.randint(0, len(answers))]}",
-            color=0x42F56C
+        
+        refid = "<@" + str(context.message.author.id) + "> "
+        await context.send(
+            refid + answers[random.randint(0, len(answers) - 1)]
         )
-        if question:
-            embed.set_footer(
-                text=f"The question was: {question}"
-            )
-        await context.send(embed=embed)
 
     @commands.command(name="create_role_menu")
-    async def role_menu(self, context):
+    async def create_role_menu(self, context, title, *, message):
         """
         Allow users to set roles through reaction.
+
+        Seperate each role by comma (',) and each emoji/role pair by pipe ('|').
+        Watch for additional spaces, may corrupt input.
         """
-        await context.send("Not implemented yet")
+        menu_desc = "React to give yourself a role. \n\n"
+        roles = []
+        emojis = []
+        info = message.strip().split(",")
+        for entry in info:
+            entry = entry.split("|")
+            if len(entry) != 2:
+                user_ref = "<@" + str(context.author.id) + ">"
+                await context.send(
+                    user_ref + " each role needs a respective emoji."
+                )
+                return
+            role = entry[0].strip()
+            emoji = entry[1].strip()
+            menu_desc += "{}: `{}`\n".format(emoji, role)
+            roles.append(role)
+            emojis.append(emoji)
+
+        embed = discord.Embed(
+            title=title,
+            description=menu_desc,
+            color=0x42F56C
+        )
+        menu = await context.send(embed=embed)
+
+        guild = self.bot.get_guild(config["server_id"])
+        for emoji, role_name in zip(emojis, roles):
+            role = discord.utils.get(guild.roles, name=role_name)
+            if role is None:
+                user_ref = "<@" + str(context.author.id) + ">"
+                await context.send(
+                    user_ref + " role: '{}' doesn't exist.".format(role_name)
+                )
+                continue
+
+            cur.execute("INSERT INTO rolemenu VALUES (?, ?, ?)",
+            (menu.id, role_name, emoji))
+            await menu.add_reaction(emoji)
+        con.commit()
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        if payload.member is None or payload.member.bot:
+            return
+
+        results = cur.execute(
+            "SELECT * FROM rolemenu WHERE menu=(?)",
+            (payload.message_id,)
+        ).fetchall()
+        if len(results) > 0:
+            guild = self.bot.get_guild(config["server_id"])
+            for result in results:
+                if result[2] == str(payload.emoji):
+                    role = discord.utils.get(guild.roles, name=result[1])
+                    if role not in payload.member.roles:
+                        await payload.member.add_roles(role)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        results = cur.execute(
+            "SELECT * FROM rolemenu WHERE menu=(?)",
+            (payload.message_id,)
+        ).fetchall()
+        if len(results) > 0:
+            guild = self.bot.get_guild(config["server_id"])
+            member = guild.get_member(payload.user_id)
+            if member is None:
+                return
+            for result in results:
+                if result[2] == str(payload.emoji):
+                    role = discord.utils.get(guild.roles, name=result[1])
+                    if role in member.roles:
+                        await member.remove_roles(role)
+
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload):
+        cur.execute(
+            "DELETE FROM rolemenu WHERE menu=(?)",
+            (payload.message_id,)
+        )
 
 def setup(bot):
     bot.add_cog(General(bot))

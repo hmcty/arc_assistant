@@ -78,6 +78,5 @@ class Owner(commands.Cog, name="owner"):
             )
             await context.send(embed=embed)
 
-
 def setup(bot):
     bot.add_cog(Owner(bot))

@@ -30,20 +30,14 @@ class Currency(commands.Cog, name="currency"):
         self.bot = bot
 
     @commands.command(name="thanks", aliases=['pay'])
-    async def thanks(self, context, *, member: discord.Member = None):
+    async def thanks(self, context, member: discord.Member):
         """
         Grants member a single ARC coin.
         """
-        if member is None:
-            author_ref = "<@" + str(context.message.author.id) + ">"
+        if member.id == context.message.author.id:
+            refid = "<@" + str(context.message.author.id) + ">"
             await context.send(
-                author_ref + " you didn't say who you're sending money too."
-            )
-            return
-        elif member.id == context.message.author.id:
-            author_ref = "<@" + str(context.message.author.id) + ">"
-            await context.send(
-                author_ref + " stop trying to print ARC coins."
+                refid + " stop trying to print ARC coins."
             )
             return
 
@@ -61,8 +55,8 @@ class Currency(commands.Cog, name="currency"):
             )
         con.commit()
 
-        member_ref = "<@" + str(member.id) + ">"
-        await context.send("Gave +1 ARC Coins to {}".format(member_ref))
+        refid = "<@" + str(member.id) + ">"
+        await context.send("Gave +1 ARC Coins to {}".format(refid))
 
     @commands.command(name="balance")
     async def balance(self, context):
@@ -94,13 +88,55 @@ class Currency(commands.Cog, name="currency"):
             leaderboard = "ARC Coin Leaderboard\n"
             pos = 1
             for result in results:
-                member_ref = "<@" + str(result[0]) + ">"
+                refid = "<@" + str(result[0]) + ">"
                 leaderboard += "{}: {} with {} coins\n".format(
-                    pos, member_ref, result[1]
+                    pos, refid, result[1]
                 )
                 pos += 1
 
         await context.send(leaderboard)
+
+    @commands.command(name="set")
+    async def set(self, context, member: discord.Member, amount: int):
+        """
+        Deletes cached verification information.
+
+        OWNER-ONLY COMMAND.
+        """
+        if member is None:
+            refid = "<@" + str(context.message.author.id) + ">"
+            await context.send(
+                refid + " you didn't say who you're sending money too."
+            )
+        elif context.message.author.id in config["owners"]:
+            result = cur.execute(
+                "SELECT * FROM currency WHERE member=(?)", (member.id,)
+            ).fetchone()
+            if result is None:
+                cur.execute(
+                    "INSERT INTO currency VALUES (?, ?)", (member.id, amount)
+                )
+            else:
+                cur.execute(
+                    "UPDATE currency SET balance=(?) WHERE member=(?)",
+                    (amount, member.id)
+                )
+            con.commit()
+            
+            await context.send(
+                "{} set {} balance to {}".format(
+                    "<@" + str(context.message.author.id) + ">",
+                    "<@" + str(member.id) + ">",
+                    amount)
+            )
+        else:
+            embed = discord.Embed(
+                title="Error!",
+                description="You don't have the permission to use this command.",
+                color=0xE02B2B
+            )
+            await context.send(embed=embed)
+
 
 
 def setup(bot):

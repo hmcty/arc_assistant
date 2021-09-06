@@ -54,6 +54,7 @@ intents.members = True
 
 intents = discord.Intents.default()
 intents.members = True
+intents.reactions = True
 
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
 
@@ -107,7 +108,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-
 # The code in this event is executed every time a command has been *successfully* executed
 @bot.event
 async def on_command_completion(ctx):
@@ -139,11 +139,12 @@ async def on_command_error(context, error):
             color=0xE02B2B
         )
         await context.send(embed=embed)
-    elif isinstance(error, commands.MissingRequiredArgument):
+    elif isinstance(error, commands.MissingRequiredArgument) or \
+        isinstance(error, commands.MemberNotFound) or \
+        isinstance(error, commands.CommandNotFound):
         embed = discord.Embed(
             title="Error!",
             description=str(error).capitalize(),
-            # We need to capitalize because the command arguments have no capital letter in the code.
             color=0xE02B2B
         )
         await context.send(embed=embed)
