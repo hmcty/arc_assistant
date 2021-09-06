@@ -25,6 +25,7 @@ Configuration handled in `config.json`:
 | db                 | Database file location (default: "./bot.db)                           |
 | sendgrid_email     | Sendgrid email account                                                |
 | sendgrid_api_key   | Sendgrid API key                                                      |
+| reminder_channels  | IDs of channels to send Google Calendar reminders in                  |
 | google_service     | Google service account JSON                                           |
 | google_calendar_id | Google Calendar ID to source reminders                                |
 
