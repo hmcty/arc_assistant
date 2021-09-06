@@ -6,5 +6,7 @@
   "owners": [],
   "db": "./bot.db",
   "sendgrid_email": "SENDGRID_EMAIL",
-  "sendgrid_api_key": "SENDGRID_API_KEY"
+  "sendgrid_api_key": "SENDGRID_API_KEY",
+  "google_service": {},
+  "calendar_id": ""
 }
