@@ -99,9 +99,7 @@ class Currency(commands.Cog, name="currency"):
     @commands.command(name="set")
     async def set(self, context, member: discord.Member, amount: int):
         """
-        Deletes cached verification information.
-
-        OWNER-ONLY COMMAND.
+        Deletes cached verification information (OWNER-ONLY COMMAND).
         """
         if member is None:
             refid = "<@" + str(context.message.author.id) + ">"

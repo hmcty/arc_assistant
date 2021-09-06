@@ -149,9 +149,7 @@ class Verification(commands.Cog, name="verification"):
     @commands.command(name="clear")
     async def clear(self, context):
         """
-        Deletes cached verification information.
-
-        OWNER-ONLY COMMAND.
+        Deletes cached verification information (OWNER-ONLY COMMAND).
         """
         if context.message.author.id in config["owners"]:
             cur.execute("DELETE FROM verification")
