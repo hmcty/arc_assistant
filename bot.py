@@ -97,11 +97,6 @@ async def on_message(message):
     # Ignores if a command is being executed by a bot or by the bot itself
     if message.author == bot.user or message.author.bot:
         return
-    # Ignores if a command is being executed by a blacklisted user
-    with open("blacklist.json") as file:
-        blacklist = json.load(file)
-    if message.author.id in blacklist["ids"]:
-        return
 
     # Check if message is verification-related
     if message.guild == None:

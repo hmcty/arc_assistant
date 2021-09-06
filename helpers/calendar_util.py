@@ -1,12 +1,13 @@
-import sys
-import datetime
-import os
+from datetime import datetime, timedelta
 import json
+import os
+import sys
+
+import discord
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
 TIMEZONE_LEN = 6
-
 
 def construct_calendar_msg(calendar_event):
     """
@@ -78,7 +79,12 @@ def construct_calendar_msg(calendar_event):
 
 def create_service():
     """Initilizes Google Service account from env json"""
-    info = json.loads("config.json")["google_service"]
+    if not os.path.isfile("config.json"):
+        sys.exit("'config.json' not found! Please add it and try again.")
+    else:
+        with open("config.json") as file:
+            config = json.load(file)
+    info = config["google_service"]
     creds = service_account.Credentials.from_service_account_info(info)
     return build('calendar', 'v3', credentials=creds)
 
@@ -88,8 +94,8 @@ def collect_today(calendar_id):
     Gets events within 24 hours of current time.
     """
     print("Parsing date")
-    start = datetime.datetime.utcnow()
-    end = start + datetime.timedelta(1)
+    start = datetime.utcnow()
+    end = start + timedelta(1)
 
     print("Obtaining and returing events")
     events_result = create_service().events().list(calendarId=calendar_id,
@@ -106,8 +112,8 @@ def collect_week(calendar_id):
     Collects n google calendar events within a week of current time.
     """
     print("Parsing date")
-    start = datetime.datetime.utcnow()
-    end = start + datetime.timedelta(week=1)
+    start = datetime.utcnow()
+    end = start + timedelta(days=7)
 
     print("Obtaining and returing events")
     events_result = create_service().events().list(calendarId=calendar_id,

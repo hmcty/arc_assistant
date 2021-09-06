@@ -45,7 +45,7 @@ class General(commands.Cog, name="general"):
         await embed_message.add_reaction("🤷")
 
     @commands.command(name="8ball")
-    async def eight_ball(self, context, *, question):
+    async def eight_ball(self, context, *, question=None):
         """
         Ask any question to the bot.
         """
@@ -59,11 +59,18 @@ class General(commands.Cog, name="general"):
             description=f"{answers[random.randint(0, len(answers))]}",
             color=0x42F56C
         )
-        embed.set_footer(
-            text=f"The question was: {question}"
-        )
+        if question:
+            embed.set_footer(
+                text=f"The question was: {question}"
+            )
         await context.send(embed=embed)
 
+    @commands.command(name="create_role_menu")
+    async def role_menu(self, context):
+        """
+        Allow users to set roles through reaction.
+        """
+        await context.send("Not implemented yet")
 
 def setup(bot):
     bot.add_cog(General(bot))
