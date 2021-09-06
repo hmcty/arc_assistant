@@ -1,12 +1,11 @@
 {
   "bot_prefix": ".",
-  "token": "YOUR_TOKEN",
-  "application_id": 0,
+  "bot_token": "YOUR_TOKEN",
   "server_id": 0,
   "owners": [],
   "db": "./bot.db",
   "sendgrid_email": "SENDGRID_EMAIL",
   "sendgrid_api_key": "SENDGRID_API_KEY",
   "google_service": {},
-  "calendar_id": ""
+  "google_calendar_id": "GOOGLE_CALENDAR_ID"
 }

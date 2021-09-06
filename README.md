@@ -8,46 +8,29 @@ Derived from [kkrypt0nn's template](https://github.com/kkrypt0nn/Python-Discord-
 ## Setup
 
 Invite your bot on servers using the following invite:
-https://discordapp.com/oauth2/authorize?&client_id=YOUR_APPLICATION_ID_HERE&scope=bot&permissions=8 
+https://discordapp.com/oauth2/authorize?&client_id=YOUR_APPLICATION_ID_HERE&scope=bot&permissions=8
 
 Configuration handled in `config.json`:
 
-| Variable                  | What it is                                                            |
-| ------------------------- | ----------------------------------------------------------------------|
-| YOUR_BOT_PREFIX_HERE      | The prefix(es) of your bot                                            |
-| YOUR_BOT_TOKEN_HERE       | The token of your bot                                                 |
-| YOUR_APPLICATION_ID_HERE  | The application ID of your bot                                        |
-| OWNERS                    | The user ID of all the bot owners                                     |
+| Variable           | Definition                                                            |
+| ------------------ | ----------------------------------------------------------------------|
+| bot_prefix         | Indicator of a bot command (default: ".")                             |
+| bot_token          | Discord token application                                             |
+| server_id          | Server ID where bot instance lives                                    |
+| owners             | The user ID of all the bot owners                                     |
+| db                 | Database file location (default: "./bot.db)                           |
+| sendgrid_email     | Sendgrid email account                                                |
+| sendgrid_api_key   | Sendgrid API key                                                      |
+| google_service     | Google service account JSON                                           |
+| google_calendar_id | Google Calendar ID to source reminders                                |
 
-In the [blacklist](blacklist.json) file you now can add IDs (as integers) in the `ids` list.
-
-### OLD:
-Add app to Heroku, then configure scheduled run of the following command:
-
-```bash
-python send_updates.py
-```
-
-The set schedule helps parametrize when updates are sent to discord.
-
-`send_updates.py` is currently written to obtain daily events, so the command should be scheduled to run daily.
-
-This application relies on four environment variables:
-
-- `GOOGLE_SERVICE_ACCOUNT_JSON`: json string given by Google API service account
-- `CALENDAR_ID`: ID for respective Google Calendar
-- `DISCORD_TOKEN`: bot token given by Discord
-- `REDIS_URL`: URL for Redis file store (provided by Redis Heroku application)
-
-### END OLD
-
-Before running the bot you will need to install all the requirements with this command:
+Before running the bot, install required dependencies:
 
 ```
 pip install -r requirements.txt
 ```
 
-Then you can run:
+Then start the bot using the following command:
 
 ```
 python3.8 bot.py
