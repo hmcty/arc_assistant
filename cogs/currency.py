@@ -84,15 +84,28 @@ class Currency(commands.Cog, name="currency"):
             "SELECT * FROM currency ORDER BY balance desc LIMIT 5").fetchall()
         if len(results) == 0:
             leaderboard = "Everybody is broke"
-        else:
-            leaderboard = "ARC Coin Leaderboard\n"
+        elif context.guild is not None:
+            leaderboard = "**ARC Coin Leaderboard**\n"
             pos = 1
             for result in results:
-                refid = "<@" + str(result[0]) + ">"
-                leaderboard += "{}: {} with {} coins\n".format(
-                    pos, refid, result[1]
-                )
+                member = context.guild.get_member(result[0])
+                if member is not None:
+                    if member.nick is not None:
+                        name = member.nick
+                    else:
+                        name = member.name
+
+                    if result[1] == 1:
+                        leaderboard += "{}: {} with {} coin\n".format(
+                            pos, name, result[1]
+                        )
+                    else:
+                        leaderboard += "{}: {} with {} coins\n".format(
+                            pos, name, result[1]
+                        )
                 pos += 1
+        else:
+            leaderboard = "Command can only be used in a guild."
 
         await context.send(leaderboard)
 
