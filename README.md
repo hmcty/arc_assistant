@@ -52,7 +52,7 @@ python3.8 bot.py
 | `.status`          | Prints general status information.                                    |
 | `.poll <title>`    | Creates simple three option poll.                                     |
 | `.8ball`           | Makes a practical decision.                                           |
-| `.role_menu <title> <role_1>\|<emoji_1>,...` | Creates and prints a new role menu.                |
+| `.create_role_menu <title> <role_1>\|<emoji_1>,...` | Creates and prints a new role menu.                |
 
 ### Calendar
 

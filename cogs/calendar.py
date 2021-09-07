@@ -65,7 +65,7 @@ class Calendar(commands.Cog, name="calendar"):
                 if channel is not None:
                     await self.get_weeks_events(channel)
 
-    @commands.command(name="get_todays_events", aliases=["today"])
+    @commands.command(name="today")
     async def get_todays_events(self, context):
         """
         Prints a list of scheduled events for the current day.
@@ -75,7 +75,7 @@ class Calendar(commands.Cog, name="calendar"):
                                    config["google_calendar_id"]),
                                "today")
 
-    @commands.command(name="get_weeks_events", aliases=["week"])
+    @commands.command(name="week")
     async def get_weeks_events(self, context):
         """
         Prints a list of scheduled events for the current week.
