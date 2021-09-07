@@ -67,14 +67,12 @@ def construct_calendar_msg(calendar_event):
                 end_datetime, "to %I:%M %p"
             )
 
-    # Create embedded message
-    msg = discord.Embed()
-    msg.description = '[{name}]({event_url})\n {date_msg}'.format(
+    description = '[{name}]({event_url})\n {date_msg}'.format(
         name=calendar_event['summary'],
         event_url=calendar_event['htmlLink'],
         date_msg=date_msg
     )
-    return msg
+    return description
 
 
 def create_service():

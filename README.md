@@ -52,14 +52,14 @@ python3.8 bot.py
 | `.status`          | Prints general status information.                                    |
 | `.poll <title>`    | Creates simple three option poll.                                     |
 | `.8ball`           | Makes a practical decision.                                           |
-| `.create_role_menu <title> <role_1>\|<emoji_1>,...` | Creates and prints a new role menu.                |
+| `.role_menu <title> <role_1>\|<emoji_1>,...` | Creates and prints a new role menu.                |
 
 ### Calendar
 
 | Command              | Definition                                                          |
 | -------------------- | --------------------------------------------------------------------|
-| `.get_todays_events` | Prints a list of scheduled events for the current day.              |
-| `.get_weeks_events`  | Prints a list of scheduled events for the current week.             |
+| `.day` | Prints a list of scheduled events for the current day.              |
+| `.week`  | Prints a list of scheduled events for the current week.             |
 
 
 ### Currency

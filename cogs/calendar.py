@@ -12,7 +12,7 @@ import sys
 import discord
 from discord.ext import commands, tasks
 
-from helpers import calendar_util
+from helpers import calendar_util as util
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -33,11 +33,19 @@ class Calendar(commands.Cog, name="calendar"):
                 content="No calendar events {}.".format(span_msg)
             )
         else:
-            await context.send(span_msg + "'s events:")
-            for calendar_event in calendar_events:
-                await context.send(
-                    embed=calendar_util.construct_calendar_msg(calendar_event)
+            embed = discord.Embed(
+                title=span_msg + "'s events:"
+            )
+            
+            description = util.construct_calendar_msg(calendar_events[0])
+            for i in range(1, len(calendar_events)):
+                description += "\n\n"
+                description += util.construct_calendar_msg(
+                    calendar_events[i]
                 )
+            
+            embed.description = description
+            await context.send(embed=embed)
 
     @tasks.loop(hours=24)
     async def send_daily_reminder(self):
@@ -57,23 +65,23 @@ class Calendar(commands.Cog, name="calendar"):
                 if channel is not None:
                     await self.get_weeks_events(channel)
 
-    @commands.command(name="get_todays_events")
+    @commands.command(name="get_todays_events", aliases=["today"])
     async def get_todays_events(self, context):
         """
         Prints a list of scheduled events for the current day.
         """
         await self.send_update(context,
-                               calendar_util.collect_today(
+                               util.collect_today(
                                    config["google_calendar_id"]),
                                "today")
 
-    @commands.command(name="get_weeks_events")
+    @commands.command(name="get_weeks_events", aliases=["week"])
     async def get_weeks_events(self, context):
         """
         Prints a list of scheduled events for the current week.
         """
         await self.send_update(context,
-                               calendar_util.collect_week(
+                               util.collect_week(
                                    config["google_calendar_id"]),
                                "this week")
 
