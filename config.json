@@ -4,8 +4,10 @@
   "server_id": 0,
   "owners": [],
   "db": "./bot.db",
-  "sendgrid_email": "SENDGRID_EMAIL",
-  "sendgrid_api_key": "SENDGRID_API_KEY",
+  "smtp_server": "SMTP_SERVER",
+  "smtp_port": 999,
+  "smtp_user": "SMTP_USER_EMAIL",
+  "smtp_password": "SMTP_PASSWORD",
   "google_service": {},
   "google_calendar_id": "GOOGLE_CALENDAR_ID"
 }
