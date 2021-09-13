@@ -3,10 +3,10 @@ Description=Running Purdue ARC's Discord
 After=network-online.target
 
 [Service]
-ExecStart=/bin/bash /home/hsan/arc_assistant/run.sh
-WorkingDirectory=/home/hsan/arc_assistant/
+ExecStart=/bin/bash <directory-to-project>/run.sh
+WorkingDirectory=<directory-to-project>
 Restart=always
-User=hsan
+User=<user>
 
 [Install]
 WantedBy=multi-user.target
