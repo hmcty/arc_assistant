@@ -10,6 +10,8 @@ import os
 import sys
 import sqlite3
 import random
+import smtplib
+from email.message import EmailMessage
 
 import discord
 from discord.ext import commands
@@ -90,18 +92,27 @@ class Verification(commands.Cog, name="verification"):
                         (code, 0, id))
                 con.commit()
 
-                emailmessage = Mail(
-                    from_email=config['sendgrid_email'],
-                    to_emails=message_content,
-                    subject='Verify your server email',
-                    html_content=str(code))
-
                 try:
                     success_msg = "Email sent. " + \
                         "**Reply here with your verification code**. " + \
                         "If you haven't received it, check your spam folder."
-                    sg = SendGridAPIClient(config['sendgrid_api_key'])
-                    sg.send(emailmessage)
+
+                    email_msg = EmailMessage()
+                    email_msg.set_content("Your code is: {}".format(code))
+                    email_msg["Subject"] = "Purdue ARC Verification Code"
+                    email_msg["From"] = config["smtp_user"]
+                    email_msg["To"] = message_content
+                    
+                    s = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
+                    s.ehlo()
+                    s.starttls()
+                    s.login(
+                        config['smtp_user'].split("@")[0],
+                        config['smtp_password']
+                    )
+ 
+                    s.send_message(email_msg) 
+                    s.quit()
                     await message.channel.send(success_msg)
                 except Exception as e:
                     await message.channel.send("Email failed to send.")
