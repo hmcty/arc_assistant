@@ -8,6 +8,7 @@ Sends updates from linked calendar.
 import json
 import os
 import sys
+from datetime import datetime
 
 import discord
 from discord.ext import commands, tasks
@@ -47,23 +48,25 @@ class Calendar(commands.Cog, name="calendar"):
             embed.description = description
             await context.send(embed=embed)
 
-    @tasks.loop(hours=24)
+    @tasks.loop(hours=1)
     async def send_daily_reminder(self):
-        guild = self.bot.get_guild(config["server_id"])
-        if guild is not None:
-            for id in config["reminder_channels"]:
-                channel = guild.get_channel(id)
-                if channel is not None:
-                    await self.get_todays_events(channel)
+        if datetime.now().hour == 0:
+            guild = self.bot.get_guild(config["server_id"])
+            if guild is not None:
+                for id in config["reminder_channels"]:
+                    channel = guild.get_channel(id)
+                    if channel is not None:
+                        await self.get_todays_events(channel)
 
-    @tasks.loop(hours=168)
+    @tasks.loop(hours=24)
     async def send_weekly_reminder(self):
-        guild = self.bot.get_guild(config["server_id"])
-        if guild is not None:
-            for id in config["reminder_channels"]:
-                channel = guild.get_channel(id)
-                if channel is not None:
-                    await self.get_weeks_events(channel)
+        if datetime.now().weekday() == 0:
+            guild = self.bot.get_guild(config["server_id"])
+            if guild is not None:
+                for id in config["reminder_channels"]:
+                    channel = guild.get_channel(id)
+                    if channel is not None:
+                        await self.get_weeks_events(channel)
 
     @commands.command(name="today")
     async def get_todays_events(self, context):
