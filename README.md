@@ -23,8 +23,10 @@ Configuration handled in `config.json`:
 | server_id          | Server ID where bot instance lives                                    |
 | owners             | The user ID of all the bot owners                                     |
 | db                 | Database file location (default: "./bot.db)                           |
-| sendgrid_email     | Sendgrid email account                                                |
-| sendgrid_api_key   | Sendgrid API key                                                      |
+| smtp_server        | Domain of smtp server for outgoing emails.                            |
+| smtp_port          | Port to use of smtp server.                                           |
+| smtp_user          | Email authentication and outgoing address for smtp server.            |
+| smtp_password      | Password authentication for smtp server.                              |
 | reminder_channels  | IDs of channels to send Google Calendar reminders in                  |
 | google_service     | Google service account JSON                                           |
 | google_calendar_id | Google Calendar ID to source reminders                                |
