@@ -25,8 +25,7 @@ else:
 class Calendar(commands.Cog, name="calendar"):
     def __init__(self, bot):
         self.bot = bot
-        self.send_daily_reminder.start()
-        self.send_weekly_reminder.start()
+        self.check_reminder.start()
 
     async def send_update(self, context, calendar_events, span_msg):
         if not calendar_events:
@@ -49,24 +48,31 @@ class Calendar(commands.Cog, name="calendar"):
             await context.send(embed=embed)
 
     @tasks.loop(hours=1)
-    async def send_daily_reminder(self):
-        if datetime.now().hour == 0:
-            guild = self.bot.get_guild(config["server_id"])
-            if guild is not None:
-                for id in config["reminder_channels"]:
-                    channel = guild.get_channel(id)
-                    if channel is not None:
-                        await self.get_todays_events(channel)
+    async def check_reminder(self):
+        now = datetime.now()
 
-    @tasks.loop(hours=24)
+        # 12am EST in UTC
+        if now.hour == 4:
+            if now.weekday() == 0:
+                self.send_weekly_reminder()
+            else:
+                self.send_daily_reminder()
+
+    async def send_daily_reminder(self):
+        guild = self.bot.get_guild(config["server_id"])
+        if guild is not None:
+            for id in config["reminder_channels"]:
+                channel = guild.get_channel(id)
+                if channel is not None:
+                    await self.get_todays_events(channel)
+
     async def send_weekly_reminder(self):
-        if datetime.now().weekday() == 0:
-            guild = self.bot.get_guild(config["server_id"])
-            if guild is not None:
-                for id in config["reminder_channels"]:
-                    channel = guild.get_channel(id)
-                    if channel is not None:
-                        await self.get_weeks_events(channel)
+        guild = self.bot.get_guild(config["server_id"])
+        if guild is not None:
+            for id in config["reminder_channels"]:
+                channel = guild.get_channel(id)
+                if channel is not None:
+                    await self.get_weeks_events(channel)
 
     @commands.command(name="today")
     async def get_todays_events(self, context):
