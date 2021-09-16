@@ -19,21 +19,26 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-con = sqlite3.connect(config["db"])
-cur = con.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)')
-con.commit()
-
-
 class Currency(commands.Cog, name="currency"):
     def __init__(self, bot):
         self.bot = bot
+
+    def open_db(self):
+        con = sqlite3.connect(config["db"])
+        cur = con.cursor()
+        cur.execute(
+          'CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)'
+        )
+        con.commit()
+        return con, cur
 
     @commands.command(name="thanks", aliases=['pay'])
     async def thanks(self, context, member: discord.Member):
         """
         Grants member a single ARC coin.
         """
+        con, cur = self.open_db()
+
         if member.id == context.message.author.id:
             refid = "<@" + str(context.message.author.id) + ">"
             await context.send(
@@ -54,6 +59,7 @@ class Currency(commands.Cog, name="currency"):
                 (result[1] + 1, result[0])
             )
         con.commit()
+        con.close()
 
         refid = "<@" + str(member.id) + ">"
         await context.send("Gave +1 ARC Coins to {}".format(refid))
@@ -63,6 +69,7 @@ class Currency(commands.Cog, name="currency"):
         """
         Prints current balance of ARC coins.
         """
+        con, cur = self.open_db()
         name = context.message.author.name
         id = context.message.author.id
 
@@ -72,6 +79,7 @@ class Currency(commands.Cog, name="currency"):
             balance = 0
         else:
             balance = result[1]
+        con.close()
 
         await context.send("Current balance for {}: {}".format(name, balance))
 
@@ -80,8 +88,10 @@ class Currency(commands.Cog, name="currency"):
         """
         Prints top 5 members with most amount of ARC coins.
         """
+        con, cur = self.open_db()
         results = cur.execute(
             "SELECT * FROM currency ORDER BY balance desc LIMIT 5").fetchall()
+        con.close()
         if len(results) == 0:
             leaderboard = "Everybody is broke"
         elif context.guild is not None:
@@ -106,7 +116,6 @@ class Currency(commands.Cog, name="currency"):
                 pos += 1
         else:
             leaderboard = "Command can only be used in a guild."
-
         await context.send(leaderboard)
 
     @commands.command(name="set")
@@ -114,6 +123,7 @@ class Currency(commands.Cog, name="currency"):
         """
         Deletes cached verification information (OWNER-ONLY COMMAND).
         """
+        con, cur = self.open_db()
         if member is None:
             refid = "<@" + str(context.message.author.id) + ">"
             await context.send(
@@ -147,8 +157,8 @@ class Currency(commands.Cog, name="currency"):
                 color=0xE02B2B
             )
             await context.send(embed=embed)
-
-
+        
+        con.close()
 
 def setup(bot):
     bot.add_cog(Currency(bot))
