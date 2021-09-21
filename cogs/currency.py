@@ -46,23 +46,26 @@ class Currency(commands.Cog, name="currency"):
             )
             return
 
-        result = cur.execute(
-            "SELECT * FROM currency WHERE member=(?)", (member.id,)
-        ).fetchone()
-        if result is None:
-            cur.execute(
-                "INSERT INTO currency VALUES (?, ?)", (member.id, 1)
-            )
-        else:
-            cur.execute(
-                "UPDATE currency SET balance=(?) WHERE member=(?)",
-                (result[1] + 1, result[0])
-            )
-        con.commit()
-        con.close()
+        try:
+            result = cur.execute(
+                "SELECT * FROM currency WHERE member=(?)", (member.id,)
+            ).fetchone()
+            if result is None:
+                cur.execute(
+                    "INSERT INTO currency VALUES (?, ?)", (member.id, 1)
+                )
+            else:
+                cur.execute(
+                    "UPDATE currency SET balance=(?) WHERE member=(?)",
+                    (result[1] + 1, result[0])
+                )
+            con.commit()
+            con.close()
 
-        refid = "<@" + str(member.id) + ">"
-        await context.send("Gave +1 ARC Coins to {}".format(refid))
+            refid = "<@" + str(member.id) + ">"
+            await context.send("Gave +1 ARC Coins to {}".format(refid))
+        except sqlite3.Error as e:
+            await context.send("Unable to produce coin: {}".format(e.args[0]))
 
     @commands.command(name="balance")
     async def balance(self, context):
