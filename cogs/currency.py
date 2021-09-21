@@ -24,7 +24,7 @@ class Currency(commands.Cog, name="currency"):
         self.bot = bot
 
     def open_db(self):
-        con = sqlite3.connect(config["db"])
+        con = sqlite3.connect(config["db"], timeout=10)
         cur = con.cursor()
         cur.execute(
           'CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)'

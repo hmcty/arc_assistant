@@ -30,24 +30,26 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-con = sqlite3.connect(config["db"])
-cur = con.cursor()
-cur.execute("""CREATE TABLE IF NOT EXISTS verification(
-    member INT,
-    code INT,
-    verified INT);""")
-con.commit()
-
-
 class Verification(commands.Cog, name="verification"):
     def __init__(self, bot):
         self.bot = bot
+
+    def open_db(self):
+        con = sqlite3.connect(config["db"], timeout=10)
+        cur = con.cursor()
+        cur.execute("""CREATE TABLE IF NOT EXISTS verification(
+            member INT,
+            code INT,
+            verified INT);""")
+        con.commit()
+        return con, cur
 
     async def handle_message(self, message):
         """
         Called when a direct message is received.
         """
 
+        con, cur = self.open_db()
         message_content = message.content.strip()
         if len(message_content) == 6 and message_content.isdigit():
             # Handle user DMing code
@@ -122,6 +124,7 @@ class Verification(commands.Cog, name="verification"):
             # Handle user DMing something other than a valid email or code
             await message.channel.send(
                 "There's an error in your message. Re-evaluate and resend.")
+        con.close()
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -129,6 +132,7 @@ class Verification(commands.Cog, name="verification"):
         DMs user to verify email address is under Purdue domain.
         """
         id = member.id
+        con, cur = self.db_open()
         result = cur.execute(
             "SELECT * FROM verification WHERE member=(?)", (id,)).fetchone()
 
@@ -139,6 +143,7 @@ class Verification(commands.Cog, name="verification"):
             await member.send(
                 "Reply here with your @{} email address.".format(DOMAIN_NAME)
             )
+        con.close()
 
     @commands.command(name="verify")
     async def verify(self, context):
@@ -146,6 +151,7 @@ class Verification(commands.Cog, name="verification"):
         DMs user to verify email address is under Purdue domain.
         """
         id = context.message.author.id
+        con, cur = self.db_open()
         result = cur.execute(
             "SELECT * FROM verification WHERE member=(?)", (id,)).fetchone()
 
@@ -156,12 +162,15 @@ class Verification(commands.Cog, name="verification"):
             await context.message.author.send(
                 "Reply here with your @{} email address.".format(DOMAIN_NAME)
             )
+        con.close()
 
     @commands.command(name="clear")
     async def clear(self, context):
         """
         Deletes cached verification information (OWNER-ONLY COMMAND).
         """
+
+        con, cur = self.open_db()
         if context.message.author.id in config["owners"]:
             cur.execute("DELETE FROM verification")
             con.commit()
@@ -175,7 +184,7 @@ class Verification(commands.Cog, name="verification"):
                 color=0xE02B2B
             )
             await context.send(embed=embed)
-
+        con.close()
 
 def setup(bot):
     bot.add_cog(Verification(bot))
