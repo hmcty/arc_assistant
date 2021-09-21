@@ -45,6 +45,22 @@ Then start the bot using the following command:
 python3.8 bot.py
 ```
 
+### Running service
+
+Alternatively, you can run the bot as a systemd service.
+
+Simply copy the provided service file (may need to change absolute paths) into `/etc/systemd/system/arc_assistant.service`, then run:
+
+```
+sudo systemctl start arc_assistant.service
+```
+
+You can check the `stdout` of the bot using the command:
+
+```
+sudo journalctl -u arc_assistant.service
+```
+
 ## Commands
 
 ### General
@@ -88,7 +104,6 @@ git update-index --skip-worktree config.json
 ```
 
 There is tons of drama becasue Discord is moving to a Slash command approach and the primary maintainer of Discord.py refuses to adhere to these changes. At some point, likely near April 2022, we will need to solve that transition. More information: https://gist.github.com/Rapptz/4a2f62751b9600a31a0d3c78100287f1
-
 
 ## License
 
