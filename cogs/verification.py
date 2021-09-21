@@ -132,7 +132,7 @@ class Verification(commands.Cog, name="verification"):
         DMs user to verify email address is under Purdue domain.
         """
         id = member.id
-        con, cur = self.db_open()
+        con, cur = self.open_db()
         result = cur.execute(
             "SELECT * FROM verification WHERE member=(?)", (id,)).fetchone()
 
@@ -151,9 +151,14 @@ class Verification(commands.Cog, name="verification"):
         DMs user to verify email address is under Purdue domain.
         """
         id = context.message.author.id
-        con, cur = self.db_open()
-        result = cur.execute(
-            "SELECT * FROM verification WHERE member=(?)", (id,)).fetchone()
+
+        try:
+            con, cur = self.open_db()
+            result = cur.execute(
+                "SELECT * FROM verification WHERE member=(?)", (id,)).fetchone()
+        except sqlite3.Error as e:
+            await context.send("Unable to verify: {}".format(e.args[0]))
+            return
 
         if result is not None and result[2] == 1:
             refid = "<@" + str(id) + ">"
