@@ -43,10 +43,10 @@ class Calendar(commands.Cog, name="calendar"):
 
     @tasks.loop(hours=1)
     async def check_reminder(self):
-        now = datetime.now()
+        now = datetime.utcnow()
 
         # 12am EST in UTC
-        if now.hour == 4:
+        if now.hour == 13:
             if now.weekday() == 0:
                 await self.send_weekly_reminder()
             else:
