@@ -31,8 +31,7 @@ class Owner(commands.Cog, name="owner"):
         """
         if context.message.author.id in config["owners"]:
             embed = discord.Embed(
-                description="Shutting down. Bye! :wave:",
-                color=0x42F56C
+                description="Shutting down. Bye! :wave:", color=0x42F56C
             )
             await context.send(embed=embed)
             await self.bot.close()
@@ -40,7 +39,7 @@ class Owner(commands.Cog, name="owner"):
             embed = discord.Embed(
                 title="Error!",
                 description="You don't have the permission to use this command.",
-                color=0xE02B2B
+                color=0xE02B2B,
             )
             await context.send(embed=embed)
 
@@ -55,7 +54,7 @@ class Owner(commands.Cog, name="owner"):
             embed = discord.Embed(
                 title="Error!",
                 description="You don't have the permission to use this command.",
-                color=0xE02B2B
+                color=0xE02B2B,
             )
             await context.send(embed=embed)
 
@@ -65,18 +64,16 @@ class Owner(commands.Cog, name="owner"):
         The bot will say anything you want, but within embeds.
         """
         if context.message.author.id in config["owners"]:
-            embed = discord.Embed(
-                description=args,
-                color=0x42F56C
-            )
+            embed = discord.Embed(description=args, color=0x42F56C)
             await context.send(embed=embed)
         else:
             embed = discord.Embed(
                 title="Error!",
                 description="You don't have the permission to use this command.",
-                color=0xE02B2B
+                color=0xE02B2B,
             )
             await context.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Owner(bot))

@@ -21,14 +21,17 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-con = sqlite3.connect(config["db"])
-cur = con.cursor()
-cur.execute('CREATE TABLE IF NOT EXISTS rolemenu(menu INT, role TEXT, emoji TEXT)')
-con.commit()
 
 class General(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
+        with self.open_db() as c:
+            c.execute(
+                "CREATE TABLE IF NOT EXISTS rolemenu(menu INT, role TEXT, emoji TEXT)"
+            )
+
+    def open_db(self):
+        return sqlite3.connect(config["db"], timeout=10)
 
     @commands.command(name="status")
     async def info(self, context):
@@ -42,10 +45,7 @@ class General(commands.Cog, name="general"):
         """
         Create a poll where members can vote.
         """
-        embed = discord.Embed(
-            title=f"{title}",
-            color=0x42F56C
-        )
+        embed = discord.Embed(title=f"{title}", color=0x42F56C)
         embed.set_footer(
             text=f"Poll created by: {context.message.author} • React to vote!"
         )
@@ -59,15 +59,25 @@ class General(commands.Cog, name="general"):
         """
         Ask any question to the bot.
         """
-        answers = ['It is certain.', 'It is decidedly so.', 'You may rely on it.', 'Without a doubt.',
-                   'Yes - definitely.', 'As I see, yes.', 'Most likely.', 'Outlook good.', 'Yes.',
-                   'Signs point to yes.', 'My reply is no.',
-                   'My sources say no.', 'Outlook not so good.', 'Very doubtful.']
-        
+        answers = [
+            "It is certain.",
+            "It is decidedly so.",
+            "You may rely on it.",
+            "Without a doubt.",
+            "Yes - definitely.",
+            "As I see, yes.",
+            "Most likely.",
+            "Outlook good.",
+            "Yes.",
+            "Signs point to yes.",
+            "My reply is no.",
+            "My sources say no.",
+            "Outlook not so good.",
+            "Very doubtful.",
+        ]
+
         refid = "<@" + str(context.message.author.id) + "> "
-        await context.send(
-            refid + answers[random.randint(0, len(answers) - 1)]
-        )
+        await context.send(refid + answers[random.randint(0, len(answers) - 1)])
 
     @commands.command(name="create_role_menu")
     async def create_role_menu(self, context, title, *, message):
@@ -85,9 +95,7 @@ class General(commands.Cog, name="general"):
             entry = entry.split("|")
             if len(entry) != 2:
                 user_ref = "<@" + str(context.author.id) + ">"
-                await context.send(
-                    user_ref + " each role needs a respective emoji."
-                )
+                await context.send(user_ref + " each role needs a respective emoji.")
                 return
             role = entry[0].strip()
             emoji = entry[1].strip()
@@ -95,11 +103,7 @@ class General(commands.Cog, name="general"):
             roles.append(role)
             emojis.append(emoji)
 
-        embed = discord.Embed(
-            title=title,
-            description=menu_desc,
-            color=0x42F56C
-        )
+        embed = discord.Embed(title=title, description=menu_desc, color=0x42F56C)
         menu = await context.send(embed=embed)
 
         guild = self.bot.get_guild(config["server_id"])
@@ -112,20 +116,22 @@ class General(commands.Cog, name="general"):
                 )
                 continue
 
-            cur.execute("INSERT INTO rolemenu VALUES (?, ?, ?)",
-            (menu.id, role_name, emoji))
+            with self.open_db() as c:
+                c.execute(
+                    "INSERT INTO rolemenu VALUES (?, ?, ?)", (menu.id, role_name, emoji)
+                )
             await menu.add_reaction(emoji)
-        con.commit()
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         if payload.member is None or payload.member.bot:
             return
 
-        results = cur.execute(
-            "SELECT * FROM rolemenu WHERE menu=(?)",
-            (payload.message_id,)
-        ).fetchall()
+        results = []
+        with self.open_db() as c:
+            results = c.execute(
+                "SELECT * FROM rolemenu WHERE menu=(?)", (payload.message_id,)
+            ).fetchall()
         if len(results) > 0:
             guild = self.bot.get_guild(config["server_id"])
             for result in results:
@@ -136,10 +142,11 @@ class General(commands.Cog, name="general"):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
-        results = cur.execute(
-            "SELECT * FROM rolemenu WHERE menu=(?)",
-            (payload.message_id,)
-        ).fetchall()
+        results = []
+        with self.open_db() as c:
+            results = c.execute(
+                "SELECT * FROM rolemenu WHERE menu=(?)", (payload.message_id,)
+            ).fetchall()
         if len(results) > 0:
             guild = self.bot.get_guild(config["server_id"])
             member = guild.get_member(payload.user_id)
@@ -153,10 +160,9 @@ class General(commands.Cog, name="general"):
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, payload):
-        cur.execute(
-            "DELETE FROM rolemenu WHERE menu=(?)",
-            (payload.message_id,)
-        )
+        with self.open_db() as c:
+            c.execute("DELETE FROM rolemenu WHERE menu=(?)", (payload.message_id,))
+
 
 def setup(bot):
     bot.add_cog(General(bot))

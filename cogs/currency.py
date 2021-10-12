@@ -19,20 +19,17 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
+
 class Currency(commands.Cog, name="currency"):
     def __init__(self, bot):
         self.bot = bot
+        with self.open_db() as c:
+            c.execute("CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)")
 
     def open_db(self):
-        con = sqlite3.connect(config["db"], timeout=10)
-        cur = con.cursor()
-        cur.execute(
-          'CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)'
-        )
-        con.commit()
-        return con, cur
+        return sqlite3.connect(config["db"], timeout=10)
 
-    @commands.command(name="thanks", aliases=['pay'])
+    @commands.command(name="thanks", aliases=["pay"])
     async def thanks(self, context, member: discord.Member):
         """
         Grants member a single ARC coin.
@@ -40,33 +37,26 @@ class Currency(commands.Cog, name="currency"):
 
         if member.id == context.message.author.id:
             refid = "<@" + str(context.message.author.id) + ">"
-            await context.send(
-                refid + " stop trying to print ARC coins."
-            )
+            await context.send(refid + " stop trying to print ARC coins.")
             return
-        
-        con, cur = self.open_db()
-        try:
-            result = cur.execute(
-                "SELECT * FROM currency WHERE member=(?)", (member.id,)
-            ).fetchone()
-            if result is None:
-                cur.execute(
-                    "INSERT INTO currency VALUES (?, ?)", (member.id, 1)
-                )
-            else:
-                cur.execute(
-                    "UPDATE currency SET balance=(?) WHERE member=(?)",
-                    (result[1] + 1, result[0])
-                )
-            con.commit()
-            con.close()
 
-            refid = "<@" + str(member.id) + ">"
-            await context.send("Gave +1 ARC Coins to {}".format(refid))
+        try:
+            with self.open_db() as c:
+                result = c.execute(
+                    "SELECT * FROM currency WHERE member=(?)", (member.id,)
+                ).fetchone()
+                if result is None:
+                    c.execute("INSERT INTO currency VALUES (?, ?)", (member.id, 1))
+                else:
+                    c.execute(
+                        "UPDATE currency SET balance=(?) WHERE member=(?)",
+                        (result[1] + 1, result[0]),
+                    )
+
+                refid = "<@" + str(member.id) + ">"
+                await context.send("Gave +1 ARC Coins to {}".format(refid))
         except sqlite3.Error as e:
             await context.send("Unable to produce coin: {}".format(e.args[0]))
-            con.close()
 
     @commands.command(name="balance")
     async def balance(self, context):
@@ -76,27 +66,28 @@ class Currency(commands.Cog, name="currency"):
         name = context.message.author.name
         id = context.message.author.id
 
-        con, cur = self.open_db()
-        result = cur.execute(
-            "SELECT * FROM currency WHERE member=(?)", (id,)).fetchone()
-        con.close()
+        with self.open_db() as c:
+            result = c.execute(
+                "SELECT * FROM currency WHERE member=(?)", (id,)
+            ).fetchone()
 
-        if result is None:
-            balance = 0
-        else:
-            balance = result[1]
+            if result is None:
+                balance = 0
+            else:
+                balance = result[1]
 
-        await context.send("Current balance for {}: {}".format(name, balance))
+            await context.send("Current balance for {}: {}".format(name, balance))
 
     @commands.command(name="leaderboard")
     async def leaderboard(self, context):
         """
         Prints top 5 members with most amount of ARC coins.
         """
-        con, cur = self.open_db()
-        results = cur.execute(
-            "SELECT * FROM currency ORDER BY balance desc LIMIT 5").fetchall()
-        con.close()
+
+        with self.open_db() as c:
+            results = c.execute(
+                "SELECT * FROM currency ORDER BY balance desc LIMIT 5"
+            ).fetchall()
 
         if len(results) == 0:
             leaderboard = "Everybody is broke"
@@ -132,39 +123,35 @@ class Currency(commands.Cog, name="currency"):
 
         if member is None:
             refid = "<@" + str(context.message.author.id) + ">"
-            await context.send(
-                refid + " you didn't say who you're sending money too."
-            )
+            await context.send(refid + " you didn't say who you're sending money too.")
         elif context.message.author.id in config["owners"]:
-            con, cur = self.open_db()
-            result = cur.execute(
-                "SELECT * FROM currency WHERE member=(?)", (member.id,)
-            ).fetchone()
-            if result is None:
-                cur.execute(
-                    "INSERT INTO currency VALUES (?, ?)", (member.id, amount)
-                )
-            else:
-                cur.execute(
-                    "UPDATE currency SET balance=(?) WHERE member=(?)",
-                    (amount, member.id)
-                )
-            con.commit()
-            con.close()
-            
+            with self.open_db() as c:
+                result = c.execute(
+                    "SELECT * FROM currency WHERE member=(?)", (member.id,)
+                ).fetchone()
+                if result is None:
+                    c.execute("INSERT INTO currency VALUES (?, ?)", (member.id, amount))
+                else:
+                    c.execute(
+                        "UPDATE currency SET balance=(?) WHERE member=(?)",
+                        (amount, member.id),
+                    )
+
             await context.send(
                 "{} set {} balance to {}".format(
                     "<@" + str(context.message.author.id) + ">",
                     "<@" + str(member.id) + ">",
-                    amount)
+                    amount,
+                )
             )
         else:
             embed = discord.Embed(
                 title="Error!",
                 description="You don't have the permission to use this command.",
-                color=0xE02B2B
+                color=0xE02B2B,
             )
             await context.send(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(Currency(bot))
