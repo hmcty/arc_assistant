@@ -76,7 +76,7 @@ sudo journalctl -u arc_assistant.service
 
 | Command              | Definition                                                          |
 | -------------------- | --------------------------------------------------------------------|
-| `.day` | Prints a list of scheduled events for the current day.              |
+| `.today` | Prints a list of scheduled events for the current day.              |
 | `.week`  | Prints a list of scheduled events for the current week.             |
 
 
