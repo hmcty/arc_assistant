@@ -37,7 +37,6 @@ class Currency(commands.Cog, name="currency"):
         """
         Grants member a single ARC coin.
         """
-        con, cur = self.open_db()
 
         if member.id == context.message.author.id:
             refid = "<@" + str(context.message.author.id) + ">"
@@ -45,7 +44,8 @@ class Currency(commands.Cog, name="currency"):
                 refid + " stop trying to print ARC coins."
             )
             return
-
+        
+        con, cur = self.open_db()
         try:
             result = cur.execute(
                 "SELECT * FROM currency WHERE member=(?)", (member.id,)
@@ -66,23 +66,25 @@ class Currency(commands.Cog, name="currency"):
             await context.send("Gave +1 ARC Coins to {}".format(refid))
         except sqlite3.Error as e:
             await context.send("Unable to produce coin: {}".format(e.args[0]))
+            con.close()
 
     @commands.command(name="balance")
     async def balance(self, context):
         """
         Prints current balance of ARC coins.
         """
-        con, cur = self.open_db()
         name = context.message.author.name
         id = context.message.author.id
 
+        con, cur = self.open_db()
         result = cur.execute(
             "SELECT * FROM currency WHERE member=(?)", (id,)).fetchone()
+        con.close()
+
         if result is None:
             balance = 0
         else:
             balance = result[1]
-        con.close()
 
         await context.send("Current balance for {}: {}".format(name, balance))
 
@@ -95,6 +97,7 @@ class Currency(commands.Cog, name="currency"):
         results = cur.execute(
             "SELECT * FROM currency ORDER BY balance desc LIMIT 5").fetchall()
         con.close()
+
         if len(results) == 0:
             leaderboard = "Everybody is broke"
         elif context.guild is not None:
@@ -126,13 +129,14 @@ class Currency(commands.Cog, name="currency"):
         """
         Deletes cached verification information (OWNER-ONLY COMMAND).
         """
-        con, cur = self.open_db()
+
         if member is None:
             refid = "<@" + str(context.message.author.id) + ">"
             await context.send(
                 refid + " you didn't say who you're sending money too."
             )
         elif context.message.author.id in config["owners"]:
+            con, cur = self.open_db()
             result = cur.execute(
                 "SELECT * FROM currency WHERE member=(?)", (member.id,)
             ).fetchone()
@@ -146,6 +150,7 @@ class Currency(commands.Cog, name="currency"):
                     (amount, member.id)
                 )
             con.commit()
+            con.close()
             
             await context.send(
                 "{} set {} balance to {}".format(
@@ -160,8 +165,6 @@ class Currency(commands.Cog, name="currency"):
                 color=0xE02B2B
             )
             await context.send(embed=embed)
-        
-        con.close()
 
 def setup(bot):
     bot.add_cog(Currency(bot))
