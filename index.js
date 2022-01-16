@@ -2,9 +2,9 @@ const fs = require('fs');
 const { Op } = require('sequelize');
 const { Client, Collection, Intents } = require('discord.js');
 const { botToken } = require('./config.json');
-const { Users, UserWallet } = require('./dbObjects.js');
+const { Users, UserWallet, UserVerify } = require('./database/dbObjects.js');
 
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const client = new Client({ intents: ["GUILDS", "GUILD_MESSAGES", "DIRECT_MESSAGES"], partials: ["CHANNEL"] });
 
 // Setup currency cache
 const currency = new Collection();
