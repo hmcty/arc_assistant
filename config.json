@@ -1,20 +1,13 @@
 {
-  "bot_prefix": "/",
-  "bot_token": "",
-  "server_id": 0,
-  "owners": [
-    317846778848346112
-  ],
-  "db": "./test-bot.db",
-  "smtp_server": "SMTP_SERVER",
-  "smtp_port": 999,
-  "smtp_user": "SMTP_USER_EMAIL",
-  "smtp_password": "SMTP_PASSWORD",
-  "google_service": {},
-  "google_calendar_id": "GOOGLE_CALENDAR_ID",
-  "rpc": "https://rpc.cheapeth.org/rpc",
-  "eth_contract": "",
-  "eth_address": "",
-  "eth_keyfile": "",
-  "eth_password": ""
-}
+    "botToken": "OTI5MjI3NjUzMTc1NzI2MTgx.YdkQsA.eQYiDWXXF2BSRUZhdwwBjjIbMi8",
+    "clientId": "929227653175726181",
+    "guildId": "868977679590883420",
+    "owners": [],
+    "db": "./bot.db",
+    "smtpServer": "SMTP_SERVER",
+    "smtpPort": 999,
+    "smtpUser": "SMTP_USER_EMAIL",
+    "smtpPassword": "SMTP_PASSWORD",
+    "googleService": {},
+    "googleCalendarId": "GOOGLE_CALENDAR_ID"
+  }

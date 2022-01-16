@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "@discordjs/builders": "^0.11.0",
+    "@discordjs/rest": "^0.2.0-canary.0",
+    "discord-api-types": "^0.26.1",
+    "discord.js": "^13.6.0",
+    "sequelize": "^6.13.0",
+    "sqlite3": "^5.0.2"
+  },
+  "name": "arc_assistant",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hmccarty/arc_assistant.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hmccarty/arc_assistant/issues"
+  },
+  "homepage": "https://github.com/hmccarty/arc_assistant#readme",
+  "description": ""
+}
