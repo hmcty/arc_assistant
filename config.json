@@ -1,13 +1,12 @@
 {
-    "botToken": "OTI5MjI3NjUzMTc1NzI2MTgx.YdkQsA.eQYiDWXXF2BSRUZhdwwBjjIbMi8",
-    "clientId": "929227653175726181",
-    "guildId": "868977679590883420",
-    "owners": [],
-    "db": "./bot.db",
+    "botToken": "BOT_TOKEN",
+    "clientId": "CLIENT_ID",
+    "guildId": "GUILD_ID",
+    "verifyDomain": "DOMAIN_TO_VERIFY",
     "smtpServer": "SMTP_SERVER",
     "smtpPort": 999,
     "smtpUser": "SMTP_USER_EMAIL",
-    "smtpPassword": "SMTP_PASSWORD",
-    "googleService": {},
+    "smtpPass": "SMTP_PASS",
+    "googleCalendarApiKey": "GOOGLE_CALENDAR_KEY",
     "googleCalendarId": "GOOGLE_CALENDAR_ID"
   }
