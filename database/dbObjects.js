@@ -8,6 +8,8 @@ const sequelize = new Sequelize('database', 'username', 'password', {
 });
 
 const Users = require('./models/Users.js')(sequelize, Sequelize.DataTypes);
+const Guilds = require('./models/Guilds.js')(sequelize, Sequelize.DataTypes);
+
 const UserWallet = require('./models/UserWallet.js')(sequelize, Sequelize.DataTypes);
 UserWallet.belongsTo(Users, { foreignKey: 'user', as: 'user_id' });
 
@@ -28,4 +30,14 @@ Reflect.defineProperty(Users.prototype, 'getLatestVerify', {
 	},
 })
 
-module.exports = { Users };
+UserVerify.belongsTo(Guilds, { foreignKey: 'guild', as: 'guild_id' });
+Reflect.defineProperty(Guilds.prototype, 'getVerifiedRole', {
+	value: async function getLatestVerify() {
+		return UserVerify.findOne({
+			where: { user: this.user_id },
+			order: [['createdAt', 'DESC']],
+		});
+	},
+})
+
+module.exports = { Users, Guilds };
