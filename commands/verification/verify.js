@@ -9,7 +9,6 @@ module.exports = {
     .setDescription("Initiates verification of the user's account."),
   async execute(interaction) {
     const id = interaction.user.id;
-    const guildId = interaction.guildId;
     const user = (await Users.findOrCreate({ where: { user_id: id } }))[0];
     await user.startVerify(null, null);
 
