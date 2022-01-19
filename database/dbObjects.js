@@ -8,7 +8,6 @@ const sequelize = new Sequelize('database', 'username', 'password', {
 });
 
 const Users = require('./models/Users.js')(sequelize, Sequelize.DataTypes);
-const Guilds = require('./models/Guilds.js')(sequelize, Sequelize.DataTypes);
 
 const UserWallet = require('./models/UserWallet.js')(sequelize, Sequelize.DataTypes);
 UserWallet.belongsTo(Users, { foreignKey: 'user', as: 'user_id' });
@@ -16,8 +15,8 @@ UserWallet.belongsTo(Users, { foreignKey: 'user', as: 'user_id' });
 const UserVerify = require('./models/UserVerify.js')(sequelize, Sequelize.DataTypes);
 UserVerify.belongsTo(Users, { foreignKey: 'user', as: 'user_id' });
 Reflect.defineProperty(Users.prototype, 'startVerify', {
-	value: async function startVerify(guildId, email, code) {
-		return UserVerify.create({ user: this.user_id, guild: guildId, email: email, code: code });
+	value: async function startVerify(email, code) {
+		return UserVerify.create({ user: this.user_id, email: email, code: code });
 	},
 })
 
@@ -30,14 +29,4 @@ Reflect.defineProperty(Users.prototype, 'getLatestVerify', {
 	},
 })
 
-UserVerify.belongsTo(Guilds, { foreignKey: 'guild', as: 'guild_id' });
-Reflect.defineProperty(Guilds.prototype, 'getVerifiedRole', {
-	value: async function getLatestVerify() {
-		return UserVerify.findOne({
-			where: { user: this.user_id },
-			order: [['createdAt', 'DESC']],
-		});
-	},
-})
-
-module.exports = { Users, Guilds };
+module.exports = { Users};
