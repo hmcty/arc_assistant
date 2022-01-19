@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { Users } = require("../database/dbObjects.js");
-const { verifyDomain } = require("../config.json");
+const { Users } = require("../../database/dbObjects.js");
+const { verifyDomain } = require("../../config.json");
 const nodemailer = require("nodemailer");
 
 module.exports = {
