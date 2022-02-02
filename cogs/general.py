@@ -30,6 +30,10 @@ class General(commands.Cog, name="general"):
                 "CREATE TABLE IF NOT EXISTS rolemenu(menu INT, role TEXT, emoji TEXT)"
             )
 
+            c.execute(
+                "CREATE TABLE IF NOT EXISTS backlog(item TEXT)"
+            )
+
     def open_db(self):
         return sqlite3.connect(config["db"], timeout=10)
 
@@ -78,6 +82,49 @@ class General(commands.Cog, name="general"):
 
         refid = "<@" + str(context.message.author.id) + "> "
         await context.send(refid + answers[random.randint(0, len(answers) - 1)])
+
+    @commands.command(name="backlog")
+    async def backlog(self, context):
+        """
+        Print current bot backlog.
+        """
+        results = []
+        with self.open_db() as c:
+            results = c.execute("SELECT * FROM backlog").fetchall()
+
+        if len(results) > 0:
+            embed = discord.Embed("My backlog")
+            msg = results[0]
+            for i in results[1:]:
+                msg += "\n\n"
+                msg += i
+
+            embed.description = description
+            await context.send(embed=embed)
+        else:
+            await context.send("No items in the backlog!")
+
+    @commands.command(name="todo")
+    async def todo(self, context, item: str):
+        """
+        Adds item to backlog.
+
+        Must be owner to use.
+        """
+
+        if context.message.author.id in config["owners"]:
+            with self.open_db() as c:
+                c.execute(
+                    "INSERT INTO backlog VALUES (?)", (item)
+                )
+            await context.send("Added item to backlog.")
+        else:
+            embed = discord.Embed(
+                title="Error!",
+                description="You don't have the permission to use this command.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed)
 
     @commands.command(name="create_role_menu")
     async def create_role_menu(self, context, title, *, message):
@@ -162,7 +209,6 @@ class General(commands.Cog, name="general"):
     async def on_raw_message_delete(self, payload):
         with self.open_db() as c:
             c.execute("DELETE FROM rolemenu WHERE menu=(?)", (payload.message_id,))
-
 
 def setup(bot):
     bot.add_cog(General(bot))
