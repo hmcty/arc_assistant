@@ -31,7 +31,7 @@ class General(commands.Cog, name="general"):
             )
 
             c.execute(
-                "CREATE TABLE IF NOT EXISTS backlog(item TEXT)"
+                "CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)"
             )
 
     def open_db(self):
@@ -93,13 +93,11 @@ class General(commands.Cog, name="general"):
             results = c.execute("SELECT * FROM backlog").fetchall()
 
         if len(results) > 0:
-            embed = discord.Embed("My backlog")
-            msg = results[0]
-            for i in results[1:]:
-                msg += "\n\n"
-                msg += i
+            msg = ""
+            for i in range(len(results)):
+                msg += f"{i+1}. {results[i][1]}\n\n"
 
-            embed.description = description
+            embed = discord.Embed(title="My backlog", description=msg)
             await context.send(embed=embed)
         else:
             await context.send("No items in the backlog!")
@@ -115,9 +113,39 @@ class General(commands.Cog, name="general"):
         if context.message.author.id in config["owners"]:
             with self.open_db() as c:
                 c.execute(
-                    "INSERT INTO backlog VALUES (?)", (item)
+                    "INSERT INTO backlog(item) VALUES (?)", (item,)
                 )
             await context.send("Added item to backlog.")
+        else:
+            embed = discord.Embed(
+                title="Error!",
+                description="You don't have the permission to use this command.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed)
+
+    @commands.command(name="finished")
+    async def finished(self, context, item: str):
+        """
+        Removes item from backlog.
+
+        Must be owner to use.
+        """
+
+        if context.message.author.id in config["owners"]:
+            result = None
+            with self.open_db() as c:
+                result = c.execute(
+                    "SELECT * FROM backlog WHERE item LIKE (?)",
+                    ("%" + item + "%",)
+                ).fetchone()
+                if result is None:
+                    await context.send("Couldn't find item in backlog.")
+                else:
+                    c.execute(
+                        "DELETE FROM backlog WHERE id=(?)", (result[0],)
+                    )
+                    await context.send("Removed item from backlog.")
         else:
             embed = discord.Embed(
                 title="Error!",
