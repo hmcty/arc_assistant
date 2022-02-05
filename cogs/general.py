@@ -42,7 +42,16 @@ class General(commands.Cog, name="general"):
         """
         Get some useful (or not) information about the bot.
         """
+
         await context.send("Still alive lol")
+
+    @commands.command(name="..")
+    async def ellipses(self, context):
+        """
+        Reinforce the dramatic atmosphere.
+        """
+
+        await context.send("*GASPS*")
 
     @commands.command(name="poll")
     async def poll(self, context, *, title):
