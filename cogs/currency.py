@@ -30,14 +30,14 @@ class Currency(commands.Cog, name="currency"):
         return sqlite3.connect(config["db"], timeout=10)
 
     @commands.command(name="thanks", aliases=["pay"])
-    async def thanks(self, context, member: discord.Member):
+    async def thanks(self, ctx: commands.Context, member: discord.Member):
         """
         Grants member a single ARC coin.
         """
 
-        if member.id == context.message.author.id:
-            refid = "<@" + str(context.message.author.id) + ">"
-            await context.send(refid + " stop trying to print ARC coins.")
+        if member.id == ctx.message.author.id:
+            refid = "<@" + str(ctx.message.author.id) + ">"
+            await ctx.send(refid + " stop trying to print ARC coins.")
             return
 
         try:
@@ -54,17 +54,17 @@ class Currency(commands.Cog, name="currency"):
                     )
 
                 refid = "<@" + str(member.id) + ">"
-                await context.send("Gave +1 ARC Coins to {}".format(refid))
+                await ctx.send("Gave +1 ARC Coins to {}".format(refid))
         except sqlite3.Error as e:
-            await context.send("Unable to produce coin: {}".format(e.args[0]))
+            await ctx.send("Unable to produce coin: {}".format(e.args[0]))
 
     @commands.command(name="balance")
-    async def balance(self, context):
+    async def balance(self, ctx: commands.Context):
         """
         Prints current balance of ARC coins.
         """
-        name = context.message.author.name
-        id = context.message.author.id
+        name = ctx.message.author.name
+        id = ctx.message.author.id
 
         with self.open_db() as c:
             result = c.execute(
@@ -76,10 +76,10 @@ class Currency(commands.Cog, name="currency"):
             else:
                 balance = result[1]
 
-            await context.send("Current balance for {}: {}".format(name, balance))
+            await ctx.send("Current balance for {}: {}".format(name, balance))
 
     @commands.command(name="leaderboard")
-    async def leaderboard(self, context):
+    async def leaderboard(self, ctx: commands.Context):
         """
         Prints top 5 members with most amount of ARC coins.
         """
@@ -91,11 +91,11 @@ class Currency(commands.Cog, name="currency"):
 
         if len(results) == 0:
             leaderboard = "Everybody is broke"
-        elif context.guild is not None:
+        elif ctx.guild is not None:
             leaderboard = "**ARC Coin Leaderboard**\n"
             pos = 1
             for result in results:
-                member = context.guild.get_member(result[0])
+                member = ctx.guild.get_member(result[0])
                 if member is not None:
                     if member.nick is not None:
                         name = member.nick
@@ -113,18 +113,18 @@ class Currency(commands.Cog, name="currency"):
                 pos += 1
         else:
             leaderboard = "Command can only be used in a guild."
-        await context.send(leaderboard)
+        await ctx.send(leaderboard)
 
     @commands.command(name="set")
-    async def set(self, context, member: discord.Member, amount: int):
+    async def set(self, ctx: commands.Context, member: discord.Member, amount: int):
         """
         Deletes cached verification information (OWNER-ONLY COMMAND).
         """
 
         if member is None:
-            refid = "<@" + str(context.message.author.id) + ">"
-            await context.send(refid + " you didn't say who you're sending money too.")
-        elif context.message.author.id in config["owners"]:
+            refid = "<@" + str(ctx.message.author.id) + ">"
+            await ctx.send(refid + " you didn't say who you're sending money too.")
+        elif ctx.message.author.id in config["owners"]:
             with self.open_db() as c:
                 result = c.execute(
                     "SELECT * FROM currency WHERE member=(?)", (member.id,)
@@ -137,9 +137,9 @@ class Currency(commands.Cog, name="currency"):
                         (amount, member.id),
                     )
 
-            await context.send(
+            await ctx.send(
                 "{} set {} balance to {}".format(
-                    "<@" + str(context.message.author.id) + ">",
+                    "<@" + str(ctx.message.author.id) + ">",
                     "<@" + str(member.id) + ">",
                     amount,
                 )
@@ -150,7 +150,7 @@ class Currency(commands.Cog, name="currency"):
                 description="You don't have the permission to use this command.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await ctx.send(embed=embed)
 
 
 def setup(bot):

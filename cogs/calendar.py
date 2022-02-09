@@ -27,9 +27,9 @@ class Calendar(commands.Cog, name="calendar"):
         self.bot = bot
         self.check_reminder.start()
 
-    async def send_update(self, context, calendar_events, span_msg):
+    async def send_update(self, ctx: commands.Context, calendar_events, span_msg):
         if not calendar_events:
-            await context.send(content="No calendar events {}.".format(span_msg))
+            await ctx.send(content="No calendar events {}.".format(span_msg))
         else:
             embed = discord.Embed(title=span_msg + "'s events:")
 
@@ -39,7 +39,7 @@ class Calendar(commands.Cog, name="calendar"):
                 description += util.construct_calendar_msg(calendar_events[i])
 
             embed.description = description
-            await context.send(embed=embed)
+            await ctx.send(embed=embed)
 
     @tasks.loop(hours=1)
     async def check_reminder(self):
@@ -69,21 +69,21 @@ class Calendar(commands.Cog, name="calendar"):
                     await self.get_weeks_events(channel)
 
     @commands.command(name="today")
-    async def get_todays_events(self, context):
+    async def get_todays_events(self, ctx: commands.Context):
         """
         Prints a list of scheduled events for the current day.
         """
         await self.send_update(
-            context, util.collect_today(config["google_calendar_id"]), "today"
+            ctx, util.collect_today(config["google_calendar_id"]), "today"
         )
 
     @commands.command(name="week")
-    async def get_weeks_events(self, context):
+    async def get_weeks_events(self, ctx):
         """
         Prints a list of scheduled events for the current week.
         """
         await self.send_update(
-            context, util.collect_week(config["google_calendar_id"]), "this week"
+            ctx, util.collect_week(config["google_calendar_id"]), "this week"
         )
 
 
