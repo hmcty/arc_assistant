@@ -25,7 +25,7 @@ class Help(commands.Cog, name="help"):
         self.bot = bot
 
     @commands.command(name="help")
-    async def help(self, context):
+    async def help(self, ctx: commands.Context):
         """
         List all commands from every Cog the bot has loaded.
         """
@@ -39,14 +39,16 @@ class Help(commands.Cog, name="help"):
             cog = self.bot.get_cog(i.lower())
             commands = cog.get_commands()
             command_list = [command.name for command in commands]
+            command_usage = [command.signature for command in commands ]
             command_description = [command.help for command in commands]
             help_text = "\n".join(
-                f"{prefix}{n} - {h}" for n, h in zip(command_list, command_description)
+                f"{prefix}{n} {u} \n ```{h}```" for n, u, h
+                    in zip(command_list, command_usage, command_description)
             )
             embed.add_field(
-                name=i.capitalize(), value=f"```{help_text}```", inline=False
+                name=i.capitalize(), value=f"{help_text}", inline=False
             )
-        await context.send(embed=embed)
+        await ctx.send(embed=embed)
 
 
 def setup(bot):

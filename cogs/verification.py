@@ -45,17 +45,17 @@ class Verification(commands.Cog, name="verification"):
     def open_db(self):
         return sqlite3.connect(config["db"], timeout=20)
 
-    async def handle_message(self, message):
+    async def handle_message(self, msg: discord.Message):
         """
-        Called when a direct message is received.
+        Called when a direct message is received for verification.
         """
 
-        message_content = message.content.strip()
+        msg_content = msg.content.strip()
 
-        if len(message_content) == 6 and message_content.isdigit():
+        if len(msg_content) == 6 and msg_content.isdigit():
             # Handle user DMing code
-            id = message.author.id
-            code = int(message_content)
+            id = msg.author.id
+            code = int(msg_content)
 
             with self.open_db() as c:
                 result = c.execute(
@@ -63,23 +63,23 @@ class Verification(commands.Cog, name="verification"):
                 ).fetchone()
 
             if result is None:
-                await message.channel.send(
+                await msg.channel.send(
                     "I wasn't ready for a code, try sending your email again."
                 )
             elif result[0] == code:
                 guild = self.bot.get_guild(config["server_id"])
                 role = discord.utils.get(guild.roles, name=ROLE_NAME)
-                member = discord.utils.get(guild.members, name=message.author.name)
+                member = discord.utils.get(guild.members, name=msg.author.name)
                 if role not in member.roles:
                     await member.add_roles(role)
-                await message.channel.send("You are verified on {}.".format(guild.name))
+                await msg.channel.send("You are verified on {}.".format(guild.name))
             else:
-                await message.channel.send("Invalid code.")
-        elif email.check(message_content):
+                await msg.channel.send("Invalid code.")
+        elif email.check(msg_content):
             # Handle user DMing valid email
-            if message_content.split("@")[1] == DOMAIN_NAME:
+            if msg_content.split("@")[1] == DOMAIN_NAME:
                 code = random.randint(100000, 999999)
-                id = message.author.id
+                id = msg.author.id
 
                 with self.open_db() as c:
                     result = c.execute(
@@ -109,7 +109,7 @@ class Verification(commands.Cog, name="verification"):
                     email_msg.set_content("Your code is: {}".format(code))
                     email_msg["Subject"] = "Purdue ARC Verification Code"
                     email_msg["From"] = config["smtp_user"]
-                    email_msg["To"] = message_content
+                    email_msg["To"] = msg_content
 
                     s = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
                     s.ehlo()
@@ -118,19 +118,19 @@ class Verification(commands.Cog, name="verification"):
 
                     s.send_message(email_msg)
                     s.quit()
-                    await message.channel.send(success_msg)
+                    await msg.channel.send(success_msg)
                 except Exception as e:
-                    await message.channel.send("Email failed to send.")
+                    await msg.channel.send("Email failed to send.")
             else:
-                await message.channel.send("You need to use a Purdue email.")
+                await msg.channel.send("You need to use a Purdue email.")
         else:
             # Handle user DMing something other than a valid email or code
-            await message.channel.send(
-                "There's an error in your message. Re-evaluate and resend."
+            await msg.channel.send(
+                "I'm not expecting a message rn :blush:"
             )
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: discord.Member):
         """
         DMs user to verify email address is under Purdue domain.
         """
@@ -150,11 +150,11 @@ class Verification(commands.Cog, name="verification"):
             )
 
     @commands.command(name="verify")
-    async def verify(self, context):
+    async def verify(self, ctx: commands.Context):
         """
-        DMs user to verify email address is under Purdue domain.
+        DMs member to verify email address is under Purdue domain.
         """
-        id = context.message.author.id
+        id = ctx.message.author.id
 
         try:
             with self.open_db() as c:
@@ -162,37 +162,31 @@ class Verification(commands.Cog, name="verification"):
                     "SELECT * FROM verification WHERE member=(?)", (id,)
                 ).fetchone()
         except sqlite3.Error as e:
-            await context.send("Unable to verify: {}".format(e.args[0]))
+            await ctx.send("Unable to verify: {}".format(e.args[0]))
             return
 
         if result is not None and result[2] == 1:
             refid = "<@" + str(id) + ">"
-            await context.send(refid + " you've already been verified.")
+            await ctx.send(refid + " you've already been verified.")
         else:
-            await context.message.author.send(
+            await ctx.message.author.send(
                 "Reply here with your @{} email address.".format(DOMAIN_NAME)
             )
 
     @commands.command(name="clear")
-    async def clear(self, context):
+    async def clear(self, ctx: commands.Context):
         """
-        Deletes cached verification information (OWNER-ONLY COMMAND).
+        Deletes cached verification information.
         """
 
-        if context.message.author.id in config["owners"]:
+        if ctx.message.author.id in config["owners"]:
             with self.open_db() as c:
                 c.execute("DELETE FROM verification")
 
-            refid = "<@" + str(context.message.author.id) + ">"
-            await context.send(refid + " verification cache cleared.")
+            refid = "<@" + str(ctx.message.author.id) + ">"
+            await ctx.send(refid + " verification cache cleared.")
         else:
-            embed = discord.Embed(
-                title="Error!",
-                description="You don't have the permission to use this command.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed)
-
+            raise commands.MissingPermissions([])
 
 def setup(bot):
     bot.add_cog(Verification(bot))

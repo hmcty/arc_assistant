@@ -25,55 +25,36 @@ class Owner(commands.Cog, name="owner"):
         self.bot = bot
 
     @commands.command(name="shutdown")
-    async def shutdown(self, context):
+    async def shutdown(self, ctx: commands.Context):
         """
-        Make the bot shutdown
+        Make the bot shutdown.
         """
-        if context.message.author.id in config["owners"]:
-            embed = discord.Embed(
-                description="Shutting down. Bye! :wave:", color=0x42F56C
-            )
-            await context.send(embed=embed)
+        if ctx.message.author.id in config["owners"]:
+            await ctx.send("See ya :wave:")
             await self.bot.close()
         else:
-            embed = discord.Embed(
-                title="Error!",
-                description="You don't have the permission to use this command.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed)
+            raise commands.MissingPermissions([])
 
     @commands.command(name="say", aliases=["echo"])
-    async def say(self, context, *, args):
+    async def say(self, ctx: commands.Context, *, msg: str):
         """
-        The bot will say anything you want.
+        Echo your message.
         """
-        if context.message.author.id in config["owners"]:
-            await context.send(args)
+        if ctx.message.author.id in config["owners"]:
+            await ctx.send(msg)
         else:
-            embed = discord.Embed(
-                title="Error!",
-                description="You don't have the permission to use this command.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed)
+            raise commands.MissingPermissions([])
 
     @commands.command(name="embed")
-    async def embed(self, context, *, args):
+    async def embed(self, ctx: commands.Context, *, msg: str):
         """
-        The bot will say anything you want, but within embeds.
+        Echo your message with embed.
         """
-        if context.message.author.id in config["owners"]:
-            embed = discord.Embed(description=args, color=0x42F56C)
-            await context.send(embed=embed)
+        if ctx.message.author.id in config["owners"]:
+            embed = discord.Embed(description=msg, color=0x42F56C)
+            await ctx.send(embed=embed)
         else:
-            embed = discord.Embed(
-                title="Error!",
-                description="You don't have the permission to use this command.",
-                color=0xE02B2B,
-            )
-            await context.send(embed=embed)
-
+            raise commands.MissingPermissions([])
 
 def setup(bot):
     bot.add_cog(Owner(bot))
