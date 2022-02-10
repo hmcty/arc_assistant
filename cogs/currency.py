@@ -9,7 +9,7 @@ import json
 import os
 import sys
 import sqlite3
-from datetime import datetime as dt
+from datetime import date
 
 import discord
 from discord.ext import commands
@@ -27,7 +27,7 @@ class Currency(commands.Cog, name="currency"):
     def __init__(self, bot):
         self.bot = bot
         self.arcdle_sol = arcdle.pick_solution()
-        self.sol_date = dt.now()
+        self.sol_date = date.today()
         with self.open_db() as c:
             c.execute("CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)")
             c.execute("CREATE TABLE IF NOT EXISTS arcdle(user INT, origin INT, game INT, visible TEXT, hidden TEXT, status INT)")
@@ -134,9 +134,9 @@ class Currency(commands.Cog, name="currency"):
                 ).fetchone()
             id, origin, game, visible, hidden, status = result
 
-            if self.sol_date.date != dt.now().date:
+            if self.sol_date < date.today():
                 self.arcdle_sol = arcdle.pick_solution()
-                self.sol_date = dt.now()
+                self.sol_date = date.today()
             sol = self.arcdle_sol
 
             prev_visible_guesses = visible.split(",")
