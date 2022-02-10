@@ -56,8 +56,6 @@ intents.reactions = True
 
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
 
-
-# The code in this even is executed when the bot is ready
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user.name}")
@@ -67,15 +65,13 @@ async def on_ready():
     print("-------------------")
     await status_task()
 
-
 # Setup the game status task of the bot
 async def status_task():
     await bot.change_presence(activity=discord.Game(
         "github.com/hmccarty/arc_assistant"
     ))
 
-
-# Removes the default help command of discord.py to be able to create our custom help command.
+# Removes the default help command
 bot.remove_command("help")
 
 if __name__ == "__main__":
@@ -89,26 +85,30 @@ if __name__ == "__main__":
                 exception = f"{type(e).__name__}: {e}"
                 print(f"Failed to load extension {extension}\n{exception}")
 
-
-# The code in this event is executed every time someone sends a message, with or without the prefix
 @bot.event
-async def on_message(message):
-    # Ignores if a command is being executed by a bot or by the bot itself
-    if message.author == bot.user or message.author.bot:
+async def on_message(msg: discord.Message):
+    if msg.author == bot.user or msg.author.bot:
         return
 
-    # Check if message is verification-related
-    if message.guild == None:
+    if msg.guild == None:
+        # Check if user is in arcdle game
+        currency = bot.get_cog("currency")
+        if currency is not None:
+            if await currency.in_arcdle_game(msg.author.id):
+                await currency.handle_message(msg)
+                return
+
+        # If not, assume user is verifying
         verification = bot.get_cog("verification")
         if verification is not None:
-            await verification.handle_message(message)
+            await verification.handle_message(msg)
             return
 
-    await bot.process_commands(message)
+    await bot.process_commands(msg)
 
 # The code in this event is executed every time a command has been *successfully* executed
 @bot.event
-async def on_command_completion(ctx):
+async def on_command_completion(ctx: commands.Context):
     fullCommandName = ctx.command.qualified_name
     split = fullCommandName.split(" ")
     executedCommand = str(split[0])
@@ -118,7 +118,7 @@ async def on_command_completion(ctx):
 
 # The code in this event is executed every time a valid commands catches an error
 @bot.event
-async def on_command_error(context, error):
+async def on_command_error(ctx: commands.Context, error: commands.CommandError):
     if isinstance(error, commands.CommandOnCooldown):
         minutes, seconds = divmod(error.retry_after, 60)
         hours, minutes = divmod(minutes, 60)
@@ -128,24 +128,32 @@ async def on_command_error(context, error):
             description=f"You can use this command again in {f'{round(hours)} hours' if round(hours) > 0 else ''} {f'{round(minutes)} minutes' if round(minutes) > 0 else ''} {f'{round(seconds)} seconds' if round(seconds) > 0 else ''}.",
             color=0xE02B2B
         )
-        await context.send(embed=embed)
+        await ctx.send(embed=embed)
     elif isinstance(error, commands.MissingPermissions):
-        embed = discord.Embed(
-            title="Error!",
-            description="You are missing the permission `" + ", ".join(
-                error.missing_perms) + "` to execute this command!",
-            color=0xE02B2B
-        )
-        await context.send(embed=embed)
+        if len(error.missing_perms) == 0:
+            embed = discord.Embed(
+                title="Error!",
+                description="You are missing the permissions to execute this command!",
+                color=0xE02B2B
+            )
+        else:
+            embed = discord.Embed(
+                title="Error!",
+                description="You are missing the permission `" + ", ".join(
+                    error.missing_perms) + "` to execute this command!",
+                color=0xE02B2B
+            )
+        await ctx.send(embed=embed)
     elif isinstance(error, commands.MissingRequiredArgument) or \
         isinstance(error, commands.MemberNotFound) or \
-        isinstance(error, commands.CommandNotFound):
+        isinstance(error, commands.CommandNotFound) or \
+        isinstance(error, commands.UserInputError):
         embed = discord.Embed(
             title="Error!",
             description=str(error).capitalize(),
             color=0xE02B2B
         )
-        await context.send(embed=embed)
+        await ctx.send(embed=embed)
     raise error
 
 
