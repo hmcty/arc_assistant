@@ -145,14 +145,20 @@ class Currency(commands.Cog, name="currency"):
             hidden_guess = ""
             visible_guess = ""
             correct_cnt = 0
+
+            # Remove perfect matches
             for i in range(5):
                 if msg_content[i] == self.arcdle_sol[i]:
-                    sol.replace(msg_content[i], "")
+                    sol = sol[:i] + sol[i+1:]
+
+            # Display partial and perfect matches
+            for i in range(5):
+                if msg_content[i] == self.arcdle_sol[i]:
                     correct_cnt += 1
                     visible_guess += f"__**{msg_content[i]}**__ "
                     hidden_guess += ":green_square: "
                 elif msg_content[i] in sol:
-                    sol.replace(msg_content[i], "")
+                    sol = sol.replace(msg_content[i], "", 1)
                     visible_guess += f"**{msg_content[i]}** "
                     hidden_guess += ":yellow_square: "
                 else:
