@@ -56,8 +56,6 @@ intents.reactions = True
 
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
 
-
-# The code in this even is executed when the bot is ready
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user.name}")
@@ -67,14 +65,13 @@ async def on_ready():
     print("-------------------")
     await status_task()
 
-
 # Setup the game status task of the bot
 async def status_task():
     await bot.change_presence(activity=discord.Game(
         "github.com/hmccarty/arc_assistant"
-    ))]
+    ))
 
-# Removes the default help command of discord.py to be able to create our custom help command.
+# Removes the default help command
 bot.remove_command("help")
 
 if __name__ == "__main__":

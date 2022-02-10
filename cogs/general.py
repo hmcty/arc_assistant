@@ -245,18 +245,20 @@ class General(commands.Cog, name="general"):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        print("test")
         results = []
         with self.open_db() as c:
             results = c.execute(
                 "SELECT * FROM rolemenu WHERE menu=(?)", (payload.message_id,)
             ).fetchall()
+        
         if len(results) > 0:
             guild = self.bot.get_guild(config["server_id"])
             member = guild.get_member(payload.user_id)
             if member is None:
                 return
             for result in results:
-                if result[2] == str(payload.emoji):
+                if result[2] == payload.emoji.name:
                     role = discord.utils.get(guild.roles, name=result[1])
                     if role in member.roles:
                         await member.remove_roles(role)
