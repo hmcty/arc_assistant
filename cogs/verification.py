@@ -47,7 +47,7 @@ class Verification(commands.Cog, name="verification"):
 
     async def handle_message(self, msg: discord.Message):
         """
-        Called when a direct message is received.
+        Called when a direct message is received for verification.
         """
 
         msg_content = msg.content.strip()
@@ -126,7 +126,7 @@ class Verification(commands.Cog, name="verification"):
         else:
             # Handle user DMing something other than a valid email or code
             await msg.channel.send(
-                "There's an error in your message. Re-evaluate and resend."
+                "I'm not expecting a message rn :blush:"
             )
 
     @commands.Cog.listener()

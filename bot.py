@@ -90,8 +90,15 @@ async def on_message(msg: discord.Message):
     if msg.author == bot.user or msg.author.bot:
         return
 
-    # Check if message is verification-related
     if msg.guild == None:
+        # Check if user is in arcdle game
+        currency = bot.get_cog("currency")
+        if currency is not None:
+            if await currency.in_arcdle_game(msg.author.id):
+                await currency.handle_message(msg)
+                return
+
+        # If not, assume user is verifying
         verification = bot.get_cog("verification")
         if verification is not None:
             await verification.handle_message(msg)
