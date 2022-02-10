@@ -155,11 +155,11 @@ class Currency(commands.Cog, name="currency"):
             for i in range(5):
                 if msg_content[i] == self.arcdle_sol[i]:
                     correct_cnt += 1
-                    visible_guess += f"__**{msg_content[i]}**__ "
+                    visible_guess += f":g_{msg_content[i]}: "
                     hidden_guess += ":green_square: "
                 elif msg_content[i] in sol:
                     sol = sol.replace(msg_content[i], "", 1)
-                    visible_guess += f"**{msg_content[i]}** "
+                    visible_guess += f":regional_indicator_{msg_content[i]}: "
                     hidden_guess += ":yellow_square: "
                 else:
                     visible_guess += f"{msg_content[i]} "
