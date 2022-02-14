@@ -12,6 +12,7 @@ import random
 import sys
 import sqlite3
 import datetime as dt
+import dateparser as dp
 
 import discord
 from discord.ext import commands, tasks
@@ -87,13 +88,7 @@ class General(commands.Cog, name="general"):
         'timeinfo' follows example format: "Jan 02 01:30 AM"
         """
 
-        rtime = dt.datetime.strptime(timeinfo, "%b %d %I:%M %p")
-        now = dt.datetime.now()
-        rtime.astimezone(tz=now.tzinfo)
-        if rtime.month < now.month:
-            rtime = rtime.replace(year=now.year+1)
-        else:
-            rtime = rtime.replace(year=now.year)
+        rtime = dp.parse(timeinfo)
         self.reminders.append(Reminder(ctx, members, reason, rtime))
         await ctx.send(f"Reminder set for {rtime.strftime('%b %d %I:%M %p')}")
         if not self.send_reminders.is_running():
@@ -245,7 +240,6 @@ class General(commands.Cog, name="general"):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        print("test")
         results = []
         with self.open_db() as c:
             results = c.execute(
