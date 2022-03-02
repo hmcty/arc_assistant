@@ -9,12 +9,16 @@ import json
 import os
 import sys
 import sqlite3
+import typing
 from datetime import date
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from helpers import arcdle
+from helpers.db_manager import MemberModel
+
+from exceptions import InternalSQLError
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -28,61 +32,55 @@ class Currency(commands.Cog, name="currency"):
         self.bot = bot
         self.arcdle_sol = arcdle.pick_solution()
         self.sol_date = date.today()
-        with self.open_db() as c:
-            c.execute("CREATE TABLE IF NOT EXISTS currency(member INT, balance INT)")
-            c.execute("CREATE TABLE IF NOT EXISTS arcdle(user INT, origin INT, game INT, visible TEXT, hidden TEXT, status INT)")
-
-    def open_db(self):
-        return sqlite3.connect(config["db"], timeout=10)
 
     @commands.command(name="thanks", aliases=["pay"])
-    async def thanks(self, ctx: commands.Context, member: discord.Member):
+    async def thanks(self, ctx: commands.Context, member: disnake.Member):
         """
         Grants member a single ARC coin.
         """
 
         if member.id == ctx.message.author.id:
-            refid = "<@" + str(ctx.message.author.id) + ">"
-            await ctx.send(refid + " stop trying to print ARC coins.")
+            await ctx.reply("Stop trying to print ARC coins")
+            return
+        
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
+
+        sender = MemberModel.get_or_create(ctx.author.id, ctx.guild.id)
+        receiver = MemberModel.get_or_create(member.id, ctx.guild.id)
+        if sender is None or receiver is None:
+            raise InternalSQLError()
+
+        if sender.balance < 1:
+            await ctx.reply(f"Insufficient balance, you have {sender.balance} ARC coins")
             return
 
-        try:
-            with self.open_db() as c:
-                result = c.execute(
-                    "SELECT * FROM currency WHERE member=(?)", (member.id,)
-                ).fetchone()
-                if result is None:
-                    c.execute("INSERT INTO currency VALUES (?, ?)", (member.id, 1))
-                else:
-                    c.execute(
-                        "UPDATE currency SET balance=(?) WHERE member=(?)",
-                        (result[1] + 1, result[0]),
-                    )
-
-                refid = "<@" + str(member.id) + ">"
-                await ctx.send("Gave +1 ARC Coins to {}".format(refid))
-        except sqlite3.Error as e:
-            await ctx.send("Unable to produce coin: {}".format(e.args[0]))
+        receiver.update_balance(receiver.balance + 1)
+        sender.update_balance(sender.balance - 1)
+        refid = "<@" + str(member.id) + ">"
+        await ctx.reply("Gave +1 ARC Coins to {}".format(refid))
 
     @commands.command(name="balance")
-    async def balance(self, ctx: commands.Context):
+    async def balance(self, ctx: commands.Context,
+        member: typing.Optional[disnake.Member] = None):
         """
         Prints current balance of ARC coins.
         """
-        name = ctx.message.author.name
-        id = ctx.message.author.id
+        
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
 
-        with self.open_db() as c:
-            result = c.execute(
-                "SELECT * FROM currency WHERE member=(?)", (id,)
-            ).fetchone()
+        if member is None:
+            account = MemberModel.get_or_create(ctx.author.id, ctx.guild.id)
+        else:
+            account = MemberModel.get_or_create(member.id, ctx.guild.id)
+        if account is None:
+            raise InternalSQLError()
 
-            if result is None:
-                balance = 0
-            else:
-                balance = result[1]
-
-            await ctx.send("Current balance for {}: {}".format(name, balance))
+        if member is None:
+            await ctx.reply(f"You have {account.balance} ARC coins")
+        else:
+            await ctx.reply(f"<@{account.member_id}> has {account.balance} ARC coins")
 
     @commands.command(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
@@ -90,38 +88,30 @@ class Currency(commands.Cog, name="currency"):
         Prints top 5 members with most amount of ARC coins.
         """
 
-        with self.open_db() as c:
-            results = c.execute(
-                "SELECT * FROM currency ORDER BY balance desc LIMIT 5"
-            ).fetchall()
-
-        if len(results) == 0:
+        accounts = MemberModel.get_richest(n=5)
+        if len(accounts) == 0:
             leaderboard = "Everybody is broke"
         elif ctx.guild is not None:
             leaderboard = "**ARC Coin Leaderboard**\n"
             pos = 1
-            for result in results:
-                member = ctx.guild.get_member(result[0])
+            for account in accounts:
+                member = ctx.guild.get_member(account.member_id)
                 if member is not None:
                     if member.nick is not None:
                         name = member.nick
                     else:
                         name = member.name
 
-                    if result[1] == 1:
-                        leaderboard += "{}: {} with {} coin\n".format(
-                            pos, name, result[1]
-                        )
+                    if account.balance == 1:
+                        leaderboard += f"{pos}: {name} with 1 coin\n"
                     else:
-                        leaderboard += "{}: {} with {} coins\n".format(
-                            pos, name, result[1]
-                        )
+                        leaderboard += f"{pos}: {name} with {account.balance} coins\n"
                 pos += 1
         else:
-            leaderboard = "Command can only be used in a guild."
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
         await ctx.send(leaderboard)
 
-    async def handle_message(self, msg: discord.Message):
+    async def handle_message(self, msg: disnake.Message):
         """
         Called when a direct message is received for arcdle.
         """
@@ -213,7 +203,7 @@ class Currency(commands.Cog, name="currency"):
                         public_desc += "\n\n"
 
                 guild = self.bot.get_guild(config["server_id"])
-                public = discord.Embed(title=f"{msg.author.name}'s ARCdle", description=public_desc)
+                public = disnake.Embed(title=f"{msg.author.name}'s ARCdle", description=public_desc)
                 await guild.get_channel(origin).send(embed=public)
 
             for i in range(len(visible_guesses)):
@@ -226,7 +216,7 @@ class Currency(commands.Cog, name="currency"):
                     board_desc += "\_ \_ \_ \_ \_"
                     if i < 5:
                         board_desc += "\n\n"
-            board = discord.Embed(title="ARCdle", description=board_desc)
+            board = disnake.Embed(title="ARCdle", description=board_desc)
 
             old_board = await msg.channel.fetch_message(game)
             await old_board.edit(embed=board)
@@ -287,7 +277,7 @@ class Currency(commands.Cog, name="currency"):
                 board_desc += "\_ \_ \_ \_ \_"
                 if i < 5:
                     board_desc += "\n\n"
-            board = discord.Embed(title="ARCdle", description=board_desc)
+            board = disnake.Embed(title="ARCdle", description=board_desc)
             game = await ctx.message.author.send(embed=board)
             
             with self.open_db() as c:
@@ -297,30 +287,23 @@ class Currency(commands.Cog, name="currency"):
                 )
 
     @commands.command(name="set")
-    async def set(self, ctx: commands.Context, member: discord.Member, amount: int):
+    async def set(self, ctx: commands.Context, member: disnake.Member, amount: int):
         """
         Deletes cached verification information.
         """
 
-        if member is None:
-            refid = "<@" + str(ctx.message.author.id) + ">"
-            await ctx.send(refid + " you didn't say who you're sending money too.")
-        elif ctx.message.author.id in config["owners"]:
-            with self.open_db() as c:
-                result = c.execute(
-                    "SELECT * FROM currency WHERE member=(?)", (member.id,)
-                ).fetchone()
-                if result is None:
-                    c.execute("INSERT INTO currency VALUES (?, ?)", (member.id, amount))
-                else:
-                    c.execute(
-                        "UPDATE currency SET balance=(?) WHERE member=(?)",
-                        (amount, member.id),
-                    )
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
 
-            await ctx.send(
-                "{} set {} balance to {}".format(
-                    "<@" + str(ctx.message.author.id) + ">",
+        if ctx.message.author.id in config["owners"]:
+            account = MemberModel.get_or_create(member.id, ctx.guild.id)
+            if account is None:
+                raise InternalSQLError()
+            
+            account.update_balance(amount)
+
+            await ctx.reply(
+                "Set {} balance to {}".format(
                     "<@" + str(member.id) + ">",
                     amount,
                 )

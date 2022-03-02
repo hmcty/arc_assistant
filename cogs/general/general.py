@@ -13,8 +13,8 @@ import sys
 import sqlite3
 import datetime as dt
 
-import discord
-from discord.ext import commands, tasks
+import disnake
+from disnake.ext import commands, tasks
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -23,7 +23,7 @@ else:
         config = json.load(file)
 
 class Reminder(object):
-    def __init__(self, ctx: commands.Context, members: [discord.Member], reason: str, time: dt.datetime):
+    def __init__(self, ctx: commands.Context, members: [disnake.Member], reason: str, time: dt.datetime):
         self.ctx = ctx
         self.members = members
         self.time = time
@@ -80,7 +80,7 @@ class General(commands.Cog, name="general"):
             self.send_reminders.stop()
 
     @commands.command(name="remind")
-    async def remind(self, ctx: commands.Context, members: commands.Greedy[discord.Member],
+    async def remind(self, ctx: commands.Context, members: commands.Greedy[disnake.Member],
         reason: str, timeinfo: str):
         """
         Reminds the list of members of a custom message at a set time.
@@ -104,7 +104,7 @@ class General(commands.Cog, name="general"):
         """
         Create a poll where members can vote.
         """
-        embed = discord.Embed(title=f"{title}", color=0x42F56C)
+        embed = disnake.Embed(title=f"{title}", color=0x42F56C)
         embed.set_footer(
             text=f"Poll created by: {ctx.message.author} • React to vote!"
         )
@@ -152,7 +152,7 @@ class General(commands.Cog, name="general"):
             for i in range(len(results)):
                 msg += f"{i+1}. {results[i][1]}\n\n"
 
-            embed = discord.Embed(title="My backlog", description=msg)
+            embed = disnake.Embed(title="My backlog", description=msg)
             await ctx.send(embed=embed)
         else:
             await ctx.send("No items in the backlog!")
@@ -170,7 +170,7 @@ class General(commands.Cog, name="general"):
                 )
             await ctx.send("Added item to backlog.")
         else:
-            embed = discord.Embed(
+            embed = disnake.Embed(
                 title="Error!",
                 description="You don't have the permission to use this command.",
                 color=0xE02B2B,
@@ -202,7 +202,7 @@ class General(commands.Cog, name="general"):
 
     @commands.command(name="role_menu")
     async def role_menu(self, ctx: commands.Context, title: str,
-        roles: commands.Greedy[discord.Role], emojis: commands.Greedy[discord.Emoji]):
+        roles: commands.Greedy[disnake.Role], emojis: commands.Greedy[disnake.Emoji]):
         """
         Allow users to set roles through reaction.
         """
@@ -214,7 +214,7 @@ class General(commands.Cog, name="general"):
         for emoji, role in zip(emojis, roles):
             menu_desc += "{}: `{}`\n".format(emoji, role)
 
-        embed = discord.Embed(title=title, description=menu_desc, color=0x42F56C)
+        embed = disnake.Embed(title=title, description=menu_desc, color=0x42F56C)
         menu = await ctx.send(embed=embed)
 
         guild = self.bot.get_guild(config["server_id"])
@@ -226,7 +226,7 @@ class General(commands.Cog, name="general"):
             await menu.add_reaction(emoji)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_add(self, payload: disnake.RawReactionActionEvent):
         if payload.member is None or payload.member.bot:
             return
 
@@ -239,12 +239,12 @@ class General(commands.Cog, name="general"):
             guild = self.bot.get_guild(config["server_id"])
             for result in results:
                 if result[2] == str(payload.emoji.name):
-                    role = discord.utils.get(guild.roles, name=result[1])
+                    role = disnake.utils.get(guild.roles, name=result[1])
                     if role not in payload.member.roles:
                         await payload.member.add_roles(role)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_reaction_remove(self, payload: disnake.RawReactionActionEvent):
         print("test")
         results = []
         with self.open_db() as c:
@@ -259,12 +259,12 @@ class General(commands.Cog, name="general"):
                 return
             for result in results:
                 if result[2] == payload.emoji.name:
-                    role = discord.utils.get(guild.roles, name=result[1])
+                    role = disnake.utils.get(guild.roles, name=result[1])
                     if role in member.roles:
                         await member.remove_roles(role)
 
     @commands.Cog.listener()
-    async def on_raw_message_delete(self, payload: discord.RawReactionActionEvent):
+    async def on_raw_message_delete(self, payload: disnake.RawReactionActionEvent):
         with self.open_db() as c:
             c.execute("DELETE FROM rolemenu WHERE menu=(?)", (payload.message_id,))
 

@@ -10,8 +10,8 @@ import os
 import sys
 from datetime import datetime
 
-import discord
-from discord.ext import commands, tasks
+import disnake
+from disnake.ext import commands, tasks
 
 from helpers import calendar_util as util
 
@@ -31,7 +31,7 @@ class Calendar(commands.Cog, name="calendar"):
         if not calendar_events:
             await ctx.send(content="No calendar events {}.".format(span_msg))
         else:
-            embed = discord.Embed(title=span_msg + "'s events:")
+            embed = disnake.Embed(title=span_msg + "'s events:")
 
             description = util.construct_calendar_msg(calendar_events[0])
             for i in range(1, len(calendar_events)):

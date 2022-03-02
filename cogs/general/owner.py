@@ -10,8 +10,8 @@ import json
 import os
 import sys
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -51,7 +51,7 @@ class Owner(commands.Cog, name="owner"):
         Echo your message with embed.
         """
         if ctx.message.author.id in config["owners"]:
-            embed = discord.Embed(description=msg, color=0x42F56C)
+            embed = disnake.Embed(description=msg, color=0x42F56C)
             await ctx.send(embed=embed)
         else:
             raise commands.MissingPermissions([])
