@@ -10,8 +10,9 @@ import json
 import os
 import sys
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
+from disnake.ext.commands import Context
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -25,14 +26,14 @@ class Help(commands.Cog, name="help"):
         self.bot = bot
 
     @commands.command(name="help")
-    async def help(self, ctx: commands.Context):
+    async def help(self, ctx: Context):
         """
         List all commands from every Cog the bot has loaded.
         """
         prefix = config["bot_prefix"]
         if not isinstance(prefix, str):
             prefix = prefix[0]
-        embed = discord.Embed(
+        embed = disnake.Embed(
             title="Help", description="List of available commands:", color=0x42F56C
         )
         for i in self.bot.cogs:

@@ -9,10 +9,21 @@ import os
 import platform
 import random
 import sys
+import logging as log
 
-import discord
-from discord.ext import commands, tasks
-from discord.ext.commands import Bot
+import disnake
+from disnake import ApplicationCommandInteraction
+from disnake.ext import tasks, commands
+from disnake.ext.commands import Bot
+from disnake.ext.commands import Context
+
+from helpers.db_manager import MemberModel, ARCdleModel
+
+import exceptions
+
+#
+# Configuration
+#
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -20,82 +31,79 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-"""	
-Setup bot intents (events restrictions)
-For more information about intents, please go to the following websites:
-https://discordpy.readthedocs.io/en/latest/intents.html
-https://discordpy.readthedocs.io/en/latest/intents.html#privileged-intents
+logger = log.getLogger()
+logger.setLevel(log.NOTSET)
 
+console_handler = log.StreamHandler()
+console_handler.setLevel(log.ERROR)
+console_handler_format = "%(asctime)s | %(levelname)s: %(message)s"
+console_handler.setFormatter(log.Formatter(console_handler_format))
+logger.addHandler(console_handler)
 
-Default Intents:
-intents.messages = True
-intents.reactions = True
-intents.guilds = True
-intents.emojis = True
-intents.bans = True
-intents.guild_typing = False
-intents.typing = False
-intents.dm_messages = False
-intents.dm_reactions = False
-intents.dm_typing = False
-intents.guild_messages = True
-intents.guild_reactions = True
-intents.integrations = True
-intents.invites = True
-intents.voice_states = False
-intents.webhooks = False
+file_handler = log.FileHandler(config["log"])
+file_handler.setLevel(log.INFO)
+file_handler_format = '%(asctime)s | %(levelname)s | %(lineno)d: %(message)s'
+file_handler.setFormatter(log.Formatter(file_handler_format))
+logger.addHandler(file_handler)
 
-Privileged Intents (Needs to be enabled on dev page), please use them only if you need them:
-intents.presences = True
-intents.members = True
-"""
+#
+# Define bot commands
+#
 
-intents = discord.Intents.default()
+intents = disnake.Intents.default()
 intents.members = True
 intents.reactions = True
-
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user.name}")
-    print(f"Discord.py API version: {discord.__version__}")
-    print(f"Python version: {platform.python_version()}")
-    print(f"Running on: {platform.system()} {platform.release()} ({os.name})")
-    print("-------------------")
-    await status_task()
-
-# Setup the game status task of the bot
-async def status_task():
-    await bot.change_presence(activity=discord.Game(
-        "github.com/hmccarty/arc_assistant"
-    ))
 
 # Removes the default help command
 bot.remove_command("help")
 
-if __name__ == "__main__":
-    for file in os.listdir("./cogs"):
+def load_commands(command_type: str) -> None:
+    for file in os.listdir(f"./cogs/{command_type}"):
         if file.endswith(".py"):
             extension = file[:-3]
             try:
-                bot.load_extension(f"cogs.{extension}")
-                print(f"Loaded extension '{extension}'")
+                bot.load_extension(f"cogs.{command_type}.{extension}")
+                log.info(f"Loaded extension '{extension}'")
             except Exception as e:
                 exception = f"{type(e).__name__}: {e}"
-                print(f"Failed to load extension {extension}\n{exception}")
+                log.error(f"Failed to load extension {extension}\n{exception}")
+
+if __name__ == "__main__":
+    load_commands("general")
+    load_commands("currency")
+
+#
+# Define bot events
+#
 
 @bot.event
-async def on_message(msg: discord.Message):
+async def on_ready():
+    log.info(f"Logged in as {bot.user.name}")
+    log.info(f"Discord.py API version: {disnake.__version__}")
+    log.info(f"Python version: {platform.python_version()}")
+    log.info(f"Running on: {platform.system()} {platform.release()} ({os.name})")
+    await status_task()
+
+# Setup the game status task of the bot
+async def status_task():
+    await bot.change_presence(activity=disnake.Game(
+        "github.com/hmccarty/arc_assistant"
+    ))
+
+@bot.event
+async def on_message(msg: disnake.Message):
     if msg.author == bot.user or msg.author.bot:
         return
 
     if msg.guild == None:
         # Check if user is in arcdle game
-        currency = bot.get_cog("currency")
-        if currency is not None:
-            if await currency.in_arcdle_game(msg.author.id):
-                await currency.handle_message(msg)
+
+        arcdle = ARCdleModel.get_member_active_game(msg.author.id)
+        if arcdle is not None:
+            game = bot.get_cog("game")
+            if game is not None:
+                await game.handle_message(msg, arcdle)
                 return
 
         # If not, assume user is verifying
@@ -112,43 +120,50 @@ async def on_command_completion(ctx: commands.Context):
     fullCommandName = ctx.command.qualified_name
     split = fullCommandName.split(" ")
     executedCommand = str(split[0])
-    print(
-        f"Executed {executedCommand} command in {ctx.guild.name} (ID: {ctx.message.guild.id}) by {ctx.message.author} (ID: {ctx.message.author.id})")
+    log.info(
+        (f"Executed {executedCommand} command in {ctx.guild.name} ",
+         f"(ID: {ctx.message.guild.id}) by {ctx.message.author} ",
+         f"(ID: {ctx.message.author.id})"))
 
 
 # The code in this event is executed every time a valid commands catches an error
 @bot.event
-async def on_command_error(ctx: commands.Context, error: commands.CommandError):
+async def on_command_error(ctx: commands.Context,
+    error: commands.CommandError):
+
     if isinstance(error, commands.CommandOnCooldown):
         minutes, seconds = divmod(error.retry_after, 60)
         hours, minutes = divmod(minutes, 60)
         hours = hours % 24
-        embed = discord.Embed(
+        desc = "You can use this command again in " \
+            f"{f'{round(hours)} hours' if round(hours) > 0 else ''} " \
+            f"{f'{round(minutes)} minutes' if round(minutes) > 0 else ''} " \
+            f"{f'{round(seconds)} seconds' if round(seconds) > 0 else ''}."
+        embed = disnake.Embed(
             title="Hey, please slow down!",
-            description=f"You can use this command again in {f'{round(hours)} hours' if round(hours) > 0 else ''} {f'{round(minutes)} minutes' if round(minutes) > 0 else ''} {f'{round(seconds)} seconds' if round(seconds) > 0 else ''}.",
+            description=desc,
             color=0xE02B2B
         )
         await ctx.send(embed=embed)
     elif isinstance(error, commands.MissingPermissions):
         if len(error.missing_perms) == 0:
-            embed = discord.Embed(
-                title="Error!",
-                description="You are missing the permissions to execute this command!",
-                color=0xE02B2B
-            )
+            desc = "You are missing the permissions to execute this command!"
         else:
-            embed = discord.Embed(
-                title="Error!",
-                description="You are missing the permission `" + ", ".join(
-                    error.missing_perms) + "` to execute this command!",
-                color=0xE02B2B
-            )
+            desc = "You are missing the permission `" + ", ".join(
+                    error.missing_perms) + "` to execute this command!"
+        embed = disnake.Embed(
+            title="Error!",
+            description=desc,
+            color=0xE02B2B
+        )
         await ctx.send(embed=embed)
     elif isinstance(error, commands.MissingRequiredArgument) or \
         isinstance(error, commands.MemberNotFound) or \
         isinstance(error, commands.CommandNotFound) or \
-        isinstance(error, commands.UserInputError):
-        embed = discord.Embed(
+        isinstance(error, commands.UserInputError) or \
+        isinstance(error, commands.NoPrivateMessage) or \
+        isinstance(error, exceptions.InternalSQLError):
+        embed = disnake.Embed(
             title="Error!",
             description=str(error).capitalize(),
             color=0xE02B2B

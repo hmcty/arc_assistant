@@ -1,0 +1,179 @@
+""""
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
+
+Description:
+Enables on-server currency.
+"""
+
+import json
+import os
+import sys
+import sqlite3
+import typing
+from datetime import date
+
+import disnake
+from disnake.ext import commands
+
+from helpers import arcdle
+from helpers.db_manager import MemberModel, ARCdleModel
+
+from exceptions import InternalSQLError
+
+if not os.path.isfile("config.json"):
+    sys.exit("'config.json' not found! Please add it and try again.")
+else:
+    with open("config.json") as file:
+        config = json.load(file)
+
+class Game(commands.Cog, name="game"):
+    def __init__(self, bot):
+        self.bot = bot
+        self.arcdle_sol = arcdle.pick_solution()
+        self.sol_date = date.today()
+        self.emojis = {}
+
+    def get_emoji(self, letter: str):
+        if letter not in self.emojis:
+            for emoji in self.bot.emojis:
+                if emoji.name == f"g_{letter}":
+                    self.emojis[letter] = emoji
+                    break
+        return self.emojis[letter]
+
+        
+    async def handle_message(self, msg: disnake.Message, arcdle_game: ARCdleModel):
+        """
+        Called when a direct message is received for arcdle.
+        """
+
+        msg_content = msg.content.strip().lower()
+        if len(msg_content) == 5 and msg_content.isalpha():
+            visible = arcdle_game.visible
+            hidden = arcdle_game.hidden
+            status = arcdle_game.status
+
+            if self.sol_date < date.today():
+                self.arcdle_sol = arcdle.pick_solution()
+                self.sol_date = date.today()
+            sol = self.arcdle_sol
+
+            prev_visible_guesses = visible.split(",")
+            prev_hidden_guesses = hidden.split(",")
+
+            hidden_guess = ""
+            visible_guess = ""
+            correct_cnt = 0
+
+            # Remove perfect matches
+            for i in range(5):
+                if msg_content[i] == self.arcdle_sol[i]:
+                    sol = sol[:i] + sol[i+1:]
+
+            # Display partial and perfect matches
+            for i in range(5):
+                if msg_content[i] == self.arcdle_sol[i]:
+                    correct_cnt += 1
+                    visible_guess += f"{self.get_emoji(msg_content[i])} "
+                    hidden_guess += ":green_square: "
+                elif msg_content[i] in sol:
+                    sol = sol.replace(msg_content[i], "", 1)
+                    visible_guess += f":regional_indicator_{msg_content[i]}: "
+                    hidden_guess += ":yellow_square: "
+                else:
+                    visible_guess += f"{msg_content[i]} "
+                    hidden_guess += ":black_large_square: "
+
+            if prev_visible_guesses[0] != "":
+                visible_guesses = prev_visible_guesses + [visible_guess]
+            else:
+                visible_guesses = [visible_guess]
+            
+            if prev_hidden_guesses[0] != "":
+                hidden_guesses = prev_hidden_guesses + [hidden_guess]
+            else:
+                hidden_guesses = [hidden_guess]
+
+            status = 0
+            if correct_cnt == 5:
+                status = 1
+            elif len(visible_guesses) == 6:
+                status = 2
+
+            winning_amt = 0.0
+            if status == 1:
+                winning_amt = 0.5
+                board_desc = f"<@{id}> guessed in {len(visible_guesses)} attempt(s), " + \
+                    f"earning {winning_amt} ARC coins\n\n"
+            elif status == 2:
+                winning_amt = 0.05
+                board_desc = f"<@{id}> failed to guess in {len(visible_guesses)} attempt(s), " + \
+                    f"earning {winning_amt} ARC coins\n\n"
+            else:
+                board_desc = f"{6-len(visible_guesses)}/6 guesses remain\n\n"
+
+            if status != 0:
+                guild_id, channel_id = arcdle_game.get_origin()
+                account = MemberModel.get_or_create(msg.author.id, guild_id)
+                account.update_balance(account.balance + winning_amt)
+
+                public_desc = board_desc
+                for i in range(len(hidden_guesses)):
+                    public_desc += hidden_guesses[i]
+                    if i < 5:
+                        public_desc += "\n\n"
+
+                guild = self.bot.get_guild(guild_id)
+                public = disnake.Embed(title=f"{msg.author.name}'s ARCdle", description=public_desc)
+                await guild.get_channel(channel_id).send(embed=public)
+
+            for i in range(len(visible_guesses)):
+                board_desc += visible_guesses[i]
+                if i < 5:
+                    board_desc += "\n\n"
+            
+            if status == 0:
+                for i in range(len(visible_guesses), 6):
+                    board_desc += "\_ \_ \_ \_ \_"
+                    if i < 5:
+                        board_desc += "\n\n"
+            board = disnake.Embed(title="ARCdle", description=board_desc)
+
+            old_board = await msg.channel.fetch_message(arcdle_game.message_id)
+            await old_board.edit(embed=board)
+
+            visible_guesses = ",".join(visible_guesses)
+            hidden_guesses = ",".join(hidden_guesses)
+
+            arcdle_game.update(visible_guesses, hidden_guesses, status)
+        else:
+            await msg.channel.send("Guess must be a 5 letter word.")
+
+    @commands.command(name="arcdle")
+    async def arcdle(self, ctx: commands.Context):
+        """
+        Starts a game of arcdle for some coins
+        """
+
+        arcdle_game = ARCdleModel.get_member_recent_game(ctx.author.id)
+
+        # Handle already started games
+        if arcdle_game is not None:
+            if arcdle_game.status == 0:
+                await ctx.reply("You've already started a game, check your DMs")
+            else:
+                await ctx.reply("You've already played today, come back tomorrow")
+            return
+        
+        # Start a new game
+        board_desc = "6/6 guesses remain \n\n"
+        for i in range(6):
+            board_desc += "\_ \_ \_ \_ \_"
+            if i < 5:
+                board_desc += "\n\n"
+        board = disnake.Embed(title="ARCdle", description=board_desc)
+        message = await ctx.message.author.send(embed=board)
+        ARCdleModel.create_game(ctx.author.id, ctx.guild.id, ctx.channel.id, message.id)
+
+def setup(bot):
+    bot.add_cog(Game(bot))

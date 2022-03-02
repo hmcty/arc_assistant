@@ -13,8 +13,8 @@ import random
 import smtplib
 from email.message import EmailMessage
 
-import discord
-from discord.ext import commands
+import disnake
+from disnake.ext import commands
 
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -45,7 +45,7 @@ class Verification(commands.Cog, name="verification"):
     def open_db(self):
         return sqlite3.connect(config["db"], timeout=20)
 
-    async def handle_message(self, msg: discord.Message):
+    async def handle_message(self, msg: disnake.Message):
         """
         Called when a direct message is received for verification.
         """
@@ -68,8 +68,8 @@ class Verification(commands.Cog, name="verification"):
                 )
             elif result[0] == code:
                 guild = self.bot.get_guild(config["server_id"])
-                role = discord.utils.get(guild.roles, name=ROLE_NAME)
-                member = discord.utils.get(guild.members, name=msg.author.name)
+                role = disnake.utils.get(guild.roles, name=ROLE_NAME)
+                member = disnake.utils.get(guild.members, name=msg.author.name)
                 if role not in member.roles:
                     await member.add_roles(role)
                 await msg.channel.send("You are verified on {}.".format(guild.name))
@@ -130,7 +130,7 @@ class Verification(commands.Cog, name="verification"):
             )
 
     @commands.Cog.listener()
-    async def on_member_join(self, member: discord.Member):
+    async def on_member_join(self, member: disnake.Member):
         """
         DMs user to verify email address is under Purdue domain.
         """
