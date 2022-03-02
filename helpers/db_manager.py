@@ -20,15 +20,16 @@ with open_db() as c:
     # Member tables
     c.execute("CREATE TABLE IF NOT EXISTS member(member_id INTEGER, " \
         "guild_id INTEGER, balance INTEGER, verified INTEGER, code INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(member_rowid INTEGER PRIMARY KEY, " \
-        "arcdle_rowid INTEGER) WITHOUT ROWID")
+    c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(arcdle_rowid INTEGER PRIMARY KEY, " \
+        "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
     # Role menu table
     c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER PRIMARY KEY, " \
         "guild_id INTEGER, role TEXT, emoji TEXT) WITHOUT ROWID")
 
     # ARCdle table
-    c.execute("CREATE TABLE IF NOT EXISTS arcdle(visible TEXT, hidden TEXT, status INT)")
+    c.execute("CREATE TABLE IF NOT EXISTS arcdle(message_id INTEGER, visible TEXT, " \
+        "hidden TEXT, status INT)")
 
 #
 # Define database models
@@ -83,35 +84,6 @@ class MemberModel(object):
         self.verified = verified
         self.code = code
 
-    def get_or_create_arcdle(self):
-        result = None
-        with open_db() as c:
-            result = c.execute(
-                "SELECT * FROM member_arcdle WHERE member_rowid=(?)",
-                (self.rowid,)
-            ).fetchone()
-
-        if result is None:
-            con = open_db()
-            c = con.cursor()
-            result = ("", "", 0)
-            c.execute(
-                "INSERT INTO arcdle VALUES (?, ?, ?)",
-                result
-            )
-            con.commit()
-
-            arcdle_rowid = c.lastrowid
-            c.execute(
-                "INSERT INTO member_arcdle VALUES (?, ?)",
-                (self.rowid, arcdle_rowid)
-            )
-            con.commit()
-            con.close()
-            return dbARCdle.get(arcdle_rowid)
-        else:
-            return dbARCdle.get(result[1])
-
     def update_balance(self, balance: int):
         with open_db() as c:
             c.execute(
@@ -137,16 +109,97 @@ class MemberModel(object):
             self.code = code
 
 
-class dbARCdle(object):
+class ARCdleModel(object):
     @staticmethod
     def get(self, rowid: int):
         pass
 
-    def __init__(self, game_id: int, hidden_msg: str, visible_msg: str, status: int):
-        self.game_id = game_id
-        self.hidden_msg = hidden_msg
-        self.visible_msg = visible_msg
+    @staticmethod
+    def get_member_active_game(member_id: int):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT rowid, message_id, hidden, visible, status
+                FROM arcdle
+                INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
+                WHERE status=0 AND member_id=(?)
+                """,
+                (member_id,)
+            ).fetchone()
+            if result is None:
+                return None
+            
+            rowid, message_id, hidden, visible, status = result
+            return ARCdleModel(rowid, message_id, hidden, visible, status)
+
+    @staticmethod
+    def get_member_recent_game(member_id: int):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT rowid, message_id, hidden, visible, status
+                FROM arcdle
+                INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
+                WHERE member_id=(?)
+                ORDER BY rowid DESC
+                """,
+                (member_id,)
+            ).fetchone()
+            if result is None:
+                return None
+            
+            rowid, message_id, hidden, visible, status = result
+            return ARCdleModel(rowid, message_id, hidden, visible, status)
+
+    @staticmethod
+    def create_game(member_id: int, guild_id: int,
+        channel_id: int, message_id: int):
+        con = open_db()
+        c = con.cursor()
+        c.execute(
+            "INSERT INTO arcdle VALUES (?, ?, ?, ?)",
+            (message_id, "", "", 0)
+        )
+        con.commit()
+
+        arcdle_rowid = c.lastrowid
+        c.execute(
+            "INSERT INTO member_arcdle VALUES (?, ?, ?, ?)",
+            (arcdle_rowid, member_id, guild_id, channel_id)
+        )
+        con.commit()
+        con.close()
+        return ARCdleModel.get_member_active_game(member_id)
+
+    def __init__(self, rowid: int, message_id: int, hidden: str, visible: str, status: int):
+        self.rowid = rowid
+        self.message_id = message_id
+        self.hidden = hidden
+        self.visible = visible
         self.status = status
+
+    def get_origin(self):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT guild_id, channel_id
+                FROM arcdle
+                INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
+                WHERE arcdle.rowid=(?)
+                """,
+                (self.rowid,)
+            ).fetchone()
+            return result
+
+    def update(self, hidden: str, visible: str, status: int):
+        with open_db() as c:
+            c.execute(
+                """
+                UPDATE arcdle SET visible=(?), hidden=(?), status=(?)
+                WHERE rowid=(?);
+                """,
+                (visible, hidden, status, self.rowid),
+            )
 
 class dbRoleMenu(object):
     @staticmethod

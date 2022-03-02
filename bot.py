@@ -17,7 +17,7 @@ from disnake.ext import tasks, commands
 from disnake.ext.commands import Bot
 from disnake.ext.commands import Context
 
-from helpers.db_manager import MemberModel
+from helpers.db_manager import MemberModel, ARCdleModel
 
 import exceptions
 
@@ -98,10 +98,12 @@ async def on_message(msg: disnake.Message):
 
     if msg.guild == None:
         # Check if user is in arcdle game
-        currency = bot.get_cog("currency")
-        if currency is not None:
-            if await currency.in_arcdle_game(msg.author.id):
-                await currency.handle_message(msg)
+
+        arcdle = ARCdleModel.get_member_active_game(msg.author.id)
+        if arcdle is not None:
+            game = bot.get_cog("game")
+            if game is not None:
+                await game.handle_message(msg, arcdle)
                 return
 
         # If not, assume user is verifying
