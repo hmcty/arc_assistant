@@ -13,6 +13,9 @@ import sys
 import sqlite3
 import datetime as dt
 import dateparser as dp
+from typing import List, Tuple, Union
+
+from helpers.db_manager import RoleMenuModel
 
 import disnake
 from disnake.ext import commands, tasks
@@ -195,13 +198,14 @@ class General(commands.Cog, name="general"):
         else:
             raise commands.MissingPermissions([])
 
-    @commands.command(name="role_menu")
-    async def role_menu(self, ctx: commands.Context, title: str,
-        roles: commands.Greedy[disnake.Role], emojis: commands.Greedy[disnake.Emoji]):
+    @commands.command(name="rolemenu")
+    async def rolemenu(self, ctx: commands.Context, title: str,
+        roles: commands.Greedy[disnake.Role], *, emojis: str):
         """
         Allow users to set roles through reaction.
         """
 
+        emojis = emojis.split(' ')
         if len(roles) != len(emojis):
             raise commands.UserInputError(message="Must have equal roles and emojis")
         
@@ -212,12 +216,8 @@ class General(commands.Cog, name="general"):
         embed = disnake.Embed(title=title, description=menu_desc, color=0x42F56C)
         menu = await ctx.send(embed=embed)
 
-        guild = self.bot.get_guild(config["server_id"])
         for emoji, role in zip(emojis, roles):
-            with self.open_db() as c:
-                c.execute(
-                    "INSERT INTO rolemenu VALUES (?, ?, ?)", (menu.id, role.name, emoji.name)
-                )
+            RoleMenuModel.add_option(menu.id, ctx.guild.id, role.name, emoji)
             await menu.add_reaction(emoji)
 
     @commands.Cog.listener()
@@ -225,42 +225,33 @@ class General(commands.Cog, name="general"):
         if payload.member is None or payload.member.bot:
             return
 
-        results = []
-        with self.open_db() as c:
-            results = c.execute(
-                "SELECT * FROM rolemenu WHERE menu=(?)", (payload.message_id,)
-            ).fetchall()
-        if len(results) > 0:
-            guild = self.bot.get_guild(config["server_id"])
-            for result in results:
-                if result[2] == str(payload.emoji.name):
-                    role = disnake.utils.get(guild.roles, name=result[1])
+        options = RoleMenuModel.get(payload.message_id, payload.guild_id)
+        if len(options) > 0:
+            guild = self.bot.get_guild(payload.guild_id)
+            for option in options:
+                if option.emoji == str(payload.emoji.name):
+                    role = disnake.utils.get(guild.roles, name=option.role)
                     if role not in payload.member.roles:
                         await payload.member.add_roles(role)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        results = []
-        with self.open_db() as c:
-            results = c.execute(
-                "SELECT * FROM rolemenu WHERE menu=(?)", (payload.message_id,)
-            ).fetchall()
-        
-        if len(results) > 0:
-            guild = self.bot.get_guild(config["server_id"])
+    async def on_raw_reaction_remove(self, payload: disnake.RawReactionActionEvent):
+        options = RoleMenuModel.get(payload.message_id, payload.guild_id)
+        if len(options) > 0:
+            guild = self.bot.get_guild(payload.guild_id)
             member = guild.get_member(payload.user_id)
             if member is None:
                 return
-            for result in results:
-                if result[2] == payload.emoji.name:
-                    role = disnake.utils.get(guild.roles, name=result[1])
+            for option in options:
+                if option.emoji == str(payload.emoji.name):
+
+                    role = disnake.utils.get(guild.roles, name=option.role)
                     if role in member.roles:
                         await member.remove_roles(role)
 
     @commands.Cog.listener()
     async def on_raw_message_delete(self, payload: disnake.RawReactionActionEvent):
-        with self.open_db() as c:
-            c.execute("DELETE FROM rolemenu WHERE menu=(?)", (payload.message_id,))
+        RoleMenuModel.delete_menu(payload.message_id, payload.guild_id)
 
 def setup(bot):
     bot.add_cog(General(bot))

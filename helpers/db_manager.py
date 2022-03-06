@@ -24,8 +24,8 @@ with open_db() as c:
         "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
     # Role menu table
-    c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER PRIMARY KEY, " \
-        "guild_id INTEGER, role TEXT, emoji TEXT) WITHOUT ROWID")
+    c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER, " \
+        "guild_id INTEGER, role TEXT, emoji TEXT)")
 
     # ARCdle table
     c.execute("CREATE TABLE IF NOT EXISTS arcdle(message_id INTEGER, visible TEXT, " \
@@ -111,15 +111,31 @@ class MemberModel(object):
 
 class ARCdleModel(object):
     @staticmethod
-    def get(self, rowid: int):
-        pass
+    def get_num_games():
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT COUNT(*)
+                FROM arcdle
+                """,
+            ).fetchone()
+        return result[0]
+
+    @staticmethod
+    def clear_games():
+        with open_db() as c:
+            result = c.execute(
+                """
+                DELETE FROM arcdle
+                """,
+            )
 
     @staticmethod
     def get_member_active_game(member_id: int):
         with open_db() as c:
             result = c.execute(
                 """
-                SELECT rowid, message_id, hidden, visible, status
+                SELECT rowid, message_id, visible, hidden, status
                 FROM arcdle
                 INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
                 WHERE status=0 AND member_id=(?)
@@ -129,8 +145,8 @@ class ARCdleModel(object):
             if result is None:
                 return None
             
-            rowid, message_id, hidden, visible, status = result
-            return ARCdleModel(rowid, message_id, hidden, visible, status)
+            rowid, message_id, visible, hidden, status = result
+            return ARCdleModel(rowid, message_id, visible, hidden, status)
 
     @staticmethod
     def get_member_recent_game(member_id: int):
@@ -148,8 +164,8 @@ class ARCdleModel(object):
             if result is None:
                 return None
             
-            rowid, message_id, hidden, visible, status = result
-            return ARCdleModel(rowid, message_id, hidden, visible, status)
+            rowid, message_id, visible, hidden, status = result
+            return ARCdleModel(rowid, message_id, visible, hidden, status)
 
     @staticmethod
     def create_game(member_id: int, guild_id: int,
@@ -171,11 +187,11 @@ class ARCdleModel(object):
         con.close()
         return ARCdleModel.get_member_active_game(member_id)
 
-    def __init__(self, rowid: int, message_id: int, hidden: str, visible: str, status: int):
+    def __init__(self, rowid: int, message_id: int, visible: str, hidden: str, status: int):
         self.rowid = rowid
         self.message_id = message_id
-        self.hidden = hidden
         self.visible = visible
+        self.hidden = hidden
         self.status = status
 
     def get_origin(self):
@@ -191,7 +207,7 @@ class ARCdleModel(object):
             ).fetchone()
             return result
 
-    def update(self, hidden: str, visible: str, status: int):
+    def update(self, visible: str, hidden: str, status: int):
         with open_db() as c:
             c.execute(
                 """
@@ -201,7 +217,38 @@ class ARCdleModel(object):
                 (visible, hidden, status, self.rowid),
             )
 
-class dbRoleMenu(object):
+class RoleMenuModel(object):
     @staticmethod
-    def get(self, message_id: int):
-        pass
+    def get(message_id: int, guild_id: int):
+        with open_db() as c:
+            results = c.execute(
+                """
+                SELECT *
+                FROM rolemenu
+                WHERE message_id=(?) and guild_id=(?)
+                """,
+                (message_id, guild_id)
+            ).fetchall()
+            return list(map(lambda x: RoleMenuModel(x[0], x[1], x[2], x[3]), results))
+
+    @staticmethod
+    def add_option(message_id: int, guild_id: int, role: str, emoji: str):
+        with open_db() as c:
+            c.execute(
+                "INSERT INTO rolemenu VALUES (?, ?, ?, ?)",
+                (message_id, guild_id, role, emoji)
+            )
+
+    @staticmethod
+    def delete_menu(message_id: int, guild_id: int):
+        with self.open_db() as c:
+            c.execute("DELETE FROM rolemenu WHERE message_id=(?) AND guild_id=(?)",
+                (message_id, guild_id)
+            )
+
+    def __init__(self, message_id: int, guild_id: int, role: str, emoji: str):
+        self.message_id = message_id
+        self.guild_id = guild_id
+        self.role = role
+        self.emoji = emoji
+        

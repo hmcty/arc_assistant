@@ -32,7 +32,8 @@ class Currency(commands.Cog, name="currency"):
         self.bot = bot
 
     @commands.command(name="thanks", aliases=["pay"])
-    async def thanks(self, ctx: commands.Context, member: disnake.Member):
+    async def thanks(self, ctx: commands.Context, member: disnake.Member,
+        amt: typing.Optional[int] = 1):
         """
         Grants member a single ARC coin.
         """
@@ -49,12 +50,12 @@ class Currency(commands.Cog, name="currency"):
         if sender is None or receiver is None:
             raise InternalSQLError()
 
-        if sender.balance < 1:
+        if sender.balance < amt:
             await ctx.reply(f"Insufficient balance, you have {sender.balance} ARC coins")
             return
 
-        receiver.update_balance(receiver.balance + 1)
-        sender.update_balance(sender.balance - 1)
+        receiver.update_balance(receiver.balance + amt)
+        sender.update_balance(sender.balance - amt)
         refid = "<@" + str(member.id) + ">"
         await ctx.reply("Gave +1 ARC Coins to {}".format(refid))
 

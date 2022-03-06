@@ -13,7 +13,7 @@ import typing
 from datetime import date
 
 import disnake
-from disnake.ext import commands
+from disnake.ext import commands, tasks
 
 from helpers import arcdle
 from helpers.db_manager import MemberModel, ARCdleModel
@@ -30,7 +30,6 @@ class Game(commands.Cog, name="game"):
     def __init__(self, bot):
         self.bot = bot
         self.arcdle_sol = arcdle.pick_solution()
-        self.sol_date = date.today()
         self.emojis = {}
 
     def get_emoji(self, letter: str):
@@ -41,6 +40,13 @@ class Game(commands.Cog, name="game"):
                     break
         return self.emojis[letter]
 
+    @tasks.loop(hours=1)
+    async def check_wipe(self):
+        now = datetime.utcnow()
+
+        # 12am EST in UTC
+        if now.hour == 5:
+            ARCdleModel.clear_games()
         
     async def handle_message(self, msg: disnake.Message, arcdle_game: ARCdleModel):
         """
@@ -53,9 +59,6 @@ class Game(commands.Cog, name="game"):
             hidden = arcdle_game.hidden
             status = arcdle_game.status
 
-            if self.sol_date < date.today():
-                self.arcdle_sol = arcdle.pick_solution()
-                self.sol_date = date.today()
             sol = self.arcdle_sol
 
             prev_visible_guesses = visible.split(",")
@@ -101,13 +104,14 @@ class Game(commands.Cog, name="game"):
                 status = 2
 
             winning_amt = 0.0
+            member_id = msg.author.id
             if status == 1:
                 winning_amt = 0.5
-                board_desc = f"<@{id}> guessed in {len(visible_guesses)} attempt(s), " + \
+                board_desc = f"<@{member_id}> guessed in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             elif status == 2:
                 winning_amt = 0.05
-                board_desc = f"<@{id}> failed to guess in {len(visible_guesses)} attempt(s), " + \
+                board_desc = f"<@{member_id}> failed to guess in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             else:
                 board_desc = f"{6-len(visible_guesses)}/6 guesses remain\n\n"
@@ -131,7 +135,7 @@ class Game(commands.Cog, name="game"):
                 board_desc += visible_guesses[i]
                 if i < 5:
                     board_desc += "\n\n"
-            
+
             if status == 0:
                 for i in range(len(visible_guesses), 6):
                     board_desc += "\_ \_ \_ \_ \_"
@@ -164,6 +168,9 @@ class Game(commands.Cog, name="game"):
             else:
                 await ctx.reply("You've already played today, come back tomorrow")
             return
+        else:
+            if ARCdleModel.get_num_games() == 0:
+                self.arcdle_sol = arcdle.pick_solution()
         
         # Start a new game
         board_desc = "6/6 guesses remain \n\n"
