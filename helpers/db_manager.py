@@ -24,6 +24,10 @@ def init_db():
         c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(arcdle_rowid INTEGER PRIMARY KEY, " \
             "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
+        # Verification table
+        c.execute("CREATE TABLE IF NOT EXISTS verification(guild_id INT, " \
+            "role_id INT, domain TEXT)")
+
         # Role menu table
         c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER, " \
             "guild_id INTEGER, role TEXT, emoji TEXT)")
@@ -51,7 +55,7 @@ class MemberModel(object):
                 (member_id, guild_id)
             ).fetchone()
 
-            if result is not None:
+            if result:
                 rowid, _, _, balance, verified, code = result
                 return MemberModel(rowid, member_id, guild_id, balance, verified, code)
             else:
@@ -65,6 +69,24 @@ class MemberModel(object):
                 return MemberModel(c.lastrowid, member_id, guild_id, 0, 0, 0)
         except sqlite3.Error as e:
             return None
+
+    @staticmethod
+    def get_all(member_id: int):
+        with open_db() as c:
+            results = c.execute(
+                "SELECT rowid, * FROM member WHERE member_id=(?)",
+                (member_id,)
+            ).fetchall()
+
+            if results:
+                members = []
+                for result in results:
+                    rowid, _, guild_id, balance, verified, code = result
+                    members.append(
+                        MemberModel(rowid, member_id, guild_id, balance, verified, code))
+                return members
+            return []
+
 
     @staticmethod
     def get_richest(n: int = 10):
@@ -287,3 +309,37 @@ class BacklogModel(object):
     def __init__(self, id: int, item: str):
         self.id = id
         self.item = item
+
+class VerificationModel(object):
+    @staticmethod
+    def configure(guild_id: int, role_id: int, domain: str):
+        with open_db() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO verification (guild_id, role_id, domain) " \
+                "VALUES (?, ?, ?)",
+                (guild_id, role_id, domain)
+            )
+            c.execute(
+                "UPDATE verification SET role_id = (?), domain = (?) " \
+                "WHERE guild_id=(?)",
+                (role_id, domain, guild_id)
+            )
+
+    @staticmethod
+    def get(guild_id: int):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT *
+                FROM verification
+                WHERE guild_id=(?)
+                """,
+                (guild_id,)
+            ).fetchone()
+            if result:
+                return VerificationModel(guild_id, result[1], result[2])
+
+    def __init__(self, guild_id: int, role_id: int, domain: str):
+        self.guild_id = guild_id
+        self.role_id = role_id
+        self.domain = domain

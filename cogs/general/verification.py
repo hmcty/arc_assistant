@@ -20,9 +20,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
 from helpers import email
-
-DOMAIN_NAME = "purdue.edu"
-ROLE_NAME = "Verified"
+from helpers.db_manager import VerificationModel, MemberModel
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -30,20 +28,24 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
+def send_verif_email(to: str, code: int):
+    email_msg = EmailMessage()
+    email_msg.set_content("Your code is: {}".format(code))
+    email_msg["Subject"] = "Purdue ARC Verification Code"
+    email_msg["From"] = config["smtp_user"]
+    email_msg["To"] = to
+
+    s = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
+    s.ehlo()
+    s.starttls()
+    s.login(config["smtp_user"].split("@")[0], config["smtp_password"])
+
+    s.send_message(email_msg)
+    s.quit()
 
 class Verification(commands.Cog, name="verification"):
     def __init__(self, bot):
         self.bot = bot
-        with self.open_db() as c:
-            c.execute(
-                """CREATE TABLE IF NOT EXISTS verification(
-                member INT,
-                code INT,
-                verified INT);"""
-            )
-
-    def open_db(self):
-        return sqlite3.connect(config["db"], timeout=20)
 
     async def handle_message(self, msg: disnake.Message):
         """
@@ -52,141 +54,89 @@ class Verification(commands.Cog, name="verification"):
 
         msg_content = msg.content.strip()
 
-        if len(msg_content) == 6 and msg_content.isdigit():
-            # Handle user DMing code
-            id = msg.author.id
-            code = int(msg_content)
+        member_verif = None
+        verif_config = None
+        for i in MemberModel.get_all(msg.author.id):
+            verif_config = VerificationModel.get(i.guild_id)
+            if verif_config is None or i.verified == 1:
+                continue
+            member_verif = i
+            break
 
-            with self.open_db() as c:
-                result = c.execute(
-                    "SELECT code FROM verification WHERE member=(?)", (id,)
-                ).fetchone()
 
-            if result is None:
-                await msg.channel.send(
-                    "I wasn't ready for a code, try sending your email again."
-                )
-            elif result[0] == code:
-                guild = self.bot.get_guild(config["server_id"])
-                role = disnake.utils.get(guild.roles, name=ROLE_NAME)
-                member = disnake.utils.get(guild.members, name=msg.author.name)
-                if role not in member.roles:
-                    await member.add_roles(role)
-                await msg.channel.send("You are verified on {}.".format(guild.name))
-            else:
-                await msg.channel.send("Invalid code.")
+        if msg_content.isdigit() and int(msg_content) == member_verif.code:
+            # TODO: Handle bizarre circumstance where don't exist
+            guild = self.bot.get_guild(member_verif.guild_id)
+            role = guild.get_role(verif_config.role_id)
+            member = guild.get_member(msg.author.id)
+            if role not in member.roles:
+                await member.add_roles(role)
+            member_verif.update_verified(1)
+            await msg.channel.send("You are verified on {}.".format(guild.name))
+        elif member_verif.code != 0:
+            await msg.channel.send("Invalid code, please try again")
         elif email.check(msg_content):
             # Handle user DMing valid email
-            if msg_content.split("@")[1] == DOMAIN_NAME:
+            if msg_content.split("@")[1] == verif_config.domain:
                 code = random.randint(100000, 999999)
-                id = msg.author.id
-
-                with self.open_db() as c:
-                    result = c.execute(
-                        "SELECT * FROM verification WHERE member=(?)", (id,)
-                    ).fetchone()
-                    if result is None:
-                        c.execute(
-                            "INSERT INTO verification VALUES (?, ?, ?)", (id, code, 0)
-                        )
-                    else:
-                        c.execute(
-                            """
-                            UPDATE verification SET code=(?), verified=(?)
-                            WHERE member=(?);
-                            """,
-                            (code, 0, id),
-                        )
+                member_verif.update_code(code)
 
                 try:
-                    success_msg = (
-                        "Email sent. "
-                        + "**Reply here with your verification code**. "
-                        + "If you haven't received it, check your spam folder."
-                    )
-
-                    email_msg = EmailMessage()
-                    email_msg.set_content("Your code is: {}".format(code))
-                    email_msg["Subject"] = "Purdue ARC Verification Code"
-                    email_msg["From"] = config["smtp_user"]
-                    email_msg["To"] = msg_content
-
-                    s = smtplib.SMTP(config["smtp_server"], config["smtp_port"])
-                    s.ehlo()
-                    s.starttls()
-                    s.login(config["smtp_user"].split("@")[0], config["smtp_password"])
-
-                    s.send_message(email_msg)
-                    s.quit()
-                    await msg.channel.send(success_msg)
+                    send_verif_email(msg_content, code)
+                    await msg.channel.send("Email sent. " \
+                        "**Reply here with your verification code**. " \
+                        "If you haven't received it, check your spam folder.")
                 except Exception as e:
+                    # TODO: Update to actually handle exception
                     await msg.channel.send("Email failed to send.")
             else:
                 await msg.channel.send("You need to use a Purdue email.")
         else:
-            # Handle user DMing something other than a valid email or code
-            await msg.channel.send(
-                "I'm not expecting a message rn :blush:"
-            )
+            await msg.channel.send("Invalid email, please try again")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: disnake.Member):
         """
         DMs user to verify email address is under Purdue domain.
         """
-        id = member.id
 
-        with self.open_db() as c:
-            result = c.execute(
-                "SELECT * FROM verification WHERE member=(?)", (id,)
-            ).fetchone()
-
-        if result is not None and result[2] == 1:
-            refid = "<@" + str(id) + ">"
-            await member.send(refid + " you've already been verified.")
-        else:
+        MemberModel.get_or_create(member.id, member.guild.id)
+        config = VerificationModel.get(member.guild.id)
+        if config is not None:
             await member.send(
-                "Reply here with your @{} email address.".format(DOMAIN_NAME)
+                f"Reply here with your @{config.domain} email address " \
+                f"to be verified on the {member.guild.name}"
             )
+
+    @commands.command(name="configureverify")
+    async def configure(self, ctx: commands.Context, role: disnake.Role,
+        domain: str):
+        
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
+
+        VerificationModel.configure(ctx.guild.id, role.id, domain)
+        await ctx.reply(f"Verification configured for @{domain} domains")
 
     @commands.command(name="verify")
     async def verify(self, ctx: commands.Context):
         """
         DMs member to verify email address is under Purdue domain.
         """
-        id = ctx.message.author.id
 
-        try:
-            with self.open_db() as c:
-                result = c.execute(
-                    "SELECT * FROM verification WHERE member=(?)", (id,)
-                ).fetchone()
-        except sqlite3.Error as e:
-            await ctx.send("Unable to verify: {}".format(e.args[0]))
-            return
-
-        if result is not None and result[2] == 1:
-            refid = "<@" + str(id) + ">"
-            await ctx.send(refid + " you've already been verified.")
-        else:
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
+        
+        config = VerificationModel.get(ctx.guild.id)
+        if config is not None:
+            member_verif = MemberModel.get_or_create(ctx.author.id, ctx.guild.id)
+            member_verif.update_verified(0)
+            member_verif.update_code(0)
             await ctx.message.author.send(
-                "Reply here with your @{} email address.".format(DOMAIN_NAME)
+                "Reply here with your @{} email address.".format(config.domain)
             )
-
-    @commands.command(name="clear")
-    async def clear(self, ctx: commands.Context):
-        """
-        Deletes cached verification information.
-        """
-
-        if ctx.message.author.id in config["owners"]:
-            with self.open_db() as c:
-                c.execute("DELETE FROM verification")
-
-            refid = "<@" + str(ctx.message.author.id) + ">"
-            await ctx.send(refid + " verification cache cleared.")
         else:
-            raise commands.MissingPermissions([])
+            await ctx.reply("You must configure verification settings, contact server admin")
 
 def setup(bot):
     bot.add_cog(Verification(bot))
