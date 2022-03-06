@@ -10,7 +10,6 @@ import json
 import os
 import random
 import sys
-import sqlite3
 import datetime as dt
 import dateparser as dp
 from typing import List, Tuple, Union
@@ -44,9 +43,6 @@ class General(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
         self.reminders = []
-
-    def open_db(self):
-        return sqlite3.connect(config["db"], timeout=10)
 
     @commands.command(name="status")
     async def info(self, ctx: commands.Context):
