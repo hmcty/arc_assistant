@@ -8,7 +8,6 @@ Verifies email domain of new members.
 import json
 import os
 import sys
-import sqlite3
 import random
 import smtplib
 from email.message import EmailMessage

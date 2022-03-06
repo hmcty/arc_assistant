@@ -16,7 +16,7 @@ import disnake
 from disnake.ext import commands
 
 from helpers import arcdle
-from helpers.db_manager import MemberModel
+from helpers.db_manager import MemberModel, CurrencyModel
 
 from exceptions import InternalSQLError
 
@@ -41,23 +41,27 @@ class Currency(commands.Cog, name="currency"):
         if member.id == ctx.message.author.id:
             await ctx.reply("Stop trying to print ARC coins")
             return
-        
-        if ctx.guild is None:
-            raise commands.NoPrivateMessage(message="Command must be used in a server")
 
-        sender = MemberModel.get_or_create(ctx.author.id, ctx.guild.id)
-        receiver = MemberModel.get_or_create(member.id, ctx.guild.id)
-        if sender is None or receiver is None:
-            raise InternalSQLError()
-
-        if sender.balance < amt:
-            await ctx.reply(f"Insufficient balance, you have {sender.balance} ARC coins")
+        if amt <= 0:
+            await ctx.reply("No stealing")
             return
 
-        receiver.update_balance(receiver.balance + amt)
-        sender.update_balance(sender.balance - amt)
-        refid = "<@" + str(member.id) + ">"
-        await ctx.reply("Gave +1 ARC Coins to {}".format(refid))
+        sender = ctx.author.id
+        sender_balance = CurrencyModel.get_balance_or_create(sender)
+
+        receiver = member.id
+        receiver_balance = CurrencyModel.get_balance_or_create(receiver)
+        if sender_balance is None or receiver_balance is None:
+            raise InternalSQLError()
+
+        if sender_balance < amt:
+            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins")
+            return
+
+        CurrencyModel.update_balance(receiver, receiver_balance + amt)
+        CurrencyModel.update_balance(sender, sender_balance - amt)
+        refid = "<@" + str(receiver) + ">"
+        await ctx.reply(f"Gave +{amt} ARC Coins to {refid}")
 
     @commands.command(name="balance")
     async def balance(self, ctx: commands.Context,
@@ -65,33 +69,33 @@ class Currency(commands.Cog, name="currency"):
         """
         Prints current balance of ARC coins.
         """
-        
-        if ctx.guild is None:
-            raise commands.NoPrivateMessage(message="Command must be used in a server")
 
         if member is None:
-            account = MemberModel.get_or_create(ctx.author.id, ctx.guild.id)
+            member_id = ctx.author.id
+            balance = CurrencyModel.get_balance_or_create(ctx.author.id)
         else:
-            account = MemberModel.get_or_create(member.id, ctx.guild.id)
-        if account is None:
-            raise InternalSQLError()
+            member_id = member.id
+            balance = CurrencyModel.get_balance_or_create(member.id)
 
         if member is None:
-            await ctx.reply(f"You have {account.balance} ARC coins")
+            await ctx.reply(f"You have {balance} ARC coins")
         else:
-            await ctx.reply(f"<@{account.member_id}> has {account.balance} ARC coins")
+            await ctx.reply(f"<@{member_id}> has {balance} ARC coins")
 
     @commands.command(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
         """
-        Prints top 5 members with most amount of ARC coins.
+        Prints top 5 members with most amount of ARC coins in a server.
         """
 
-        accounts = MemberModel.get_richest(n=5)
+        if ctx.guild is None:
+            raise commands.NoPrivateMessage(message="Command must be used in a server")
+
+        accounts = MemberModel.get_richest(ctx.guild.id, n=10)
         if len(accounts) == 0:
             leaderboard = "Everybody is broke"
-        elif ctx.guild is not None:
-            leaderboard = "**ARC Coin Leaderboard**\n"
+        else:
+            leaderboard = f"**{ctx.guild.name}'s ARC Coin Leaderboard**\n"
             pos = 1
             for account in accounts:
                 member = ctx.guild.get_member(account.member_id)
@@ -101,39 +105,13 @@ class Currency(commands.Cog, name="currency"):
                     else:
                         name = member.name
 
-                    if account.balance == 1:
+                    balance = CurrencyModel.get_balance_or_create(account.member_id)
+                    if balance == 1:
                         leaderboard += f"{pos}: {name} with 1 coin\n"
                     else:
-                        leaderboard += f"{pos}: {name} with {account.balance} coins\n"
+                        leaderboard += f"{pos}: {name} with {balance} coins\n"
                 pos += 1
-        else:
-            raise commands.NoPrivateMessage(message="Command must be used in a server")
         await ctx.send(leaderboard)
-
-    @commands.command(name="set")
-    async def set(self, ctx: commands.Context, member: disnake.Member, amount: int):
-        """
-        Deletes cached verification information.
-        """
-
-        if ctx.guild is None:
-            raise commands.NoPrivateMessage(message="Command must be used in a server")
-
-        if ctx.message.author.id in config["owners"]:
-            account = MemberModel.get_or_create(member.id, ctx.guild.id)
-            if account is None:
-                raise InternalSQLError()
-            
-            account.update_balance(amount)
-
-            await ctx.reply(
-                "Set {} balance to {}".format(
-                    "<@" + str(member.id) + ">",
-                    amount,
-                )
-            )
-        else:
-            raise commands.MissingPermissions([])
 
 def setup(bot):
     bot.add_cog(Currency(bot))

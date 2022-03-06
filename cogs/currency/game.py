@@ -10,13 +10,14 @@ import os
 import sys
 import sqlite3
 import typing
+import random
 from datetime import date
 
 import disnake
 from disnake.ext import commands, tasks
 
 from helpers import arcdle
-from helpers.db_manager import MemberModel, ARCdleModel
+from helpers.db_manager import MemberModel, CurrencyModel, ARCdleModel, DailyModel
 
 from exceptions import InternalSQLError
 
@@ -71,7 +72,7 @@ class Game(commands.Cog, name="game"):
             # Remove perfect matches
             for i in range(5):
                 if msg_content[i] == self.arcdle_sol[i]:
-                    sol = sol[:i] + sol[i+1:]
+                    sol = sol.replace(msg_content[i], "", 1)
 
             # Display partial and perfect matches
             for i in range(5):
@@ -106,11 +107,11 @@ class Game(commands.Cog, name="game"):
             winning_amt = 0.0
             member_id = msg.author.id
             if status == 1:
-                winning_amt = 0.5
+                winning_amt = 2.0
                 board_desc = f"<@{member_id}> guessed in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             elif status == 2:
-                winning_amt = 0.05
+                winning_amt = 1.0
                 board_desc = f"<@{member_id}> failed to guess in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             else:
@@ -118,8 +119,8 @@ class Game(commands.Cog, name="game"):
 
             if status != 0:
                 guild_id, channel_id = arcdle_game.get_origin()
-                account = MemberModel.get_or_create(msg.author.id, guild_id)
-                account.update_balance(account.balance + winning_amt)
+                balance = CurrencyModel.get_balance_or_create(msg.author.id)
+                CurrencyModel.update_balance(msg.author.id, balance + winning_amt)
 
                 public_desc = board_desc
                 for i in range(len(hidden_guesses)):
@@ -141,6 +142,8 @@ class Game(commands.Cog, name="game"):
                     board_desc += "\_ \_ \_ \_ \_"
                     if i < 5:
                         board_desc += "\n\n"
+            else:
+                board_desc += f"\n\n The word was {self.arcdle_sol}"
             board = disnake.Embed(title="ARCdle", description=board_desc)
 
             old_board = await msg.channel.fetch_message(arcdle_game.message_id)
@@ -152,6 +155,22 @@ class Game(commands.Cog, name="game"):
             arcdle_game.update(visible_guesses, hidden_guesses, status)
         else:
             await msg.channel.send("Guess must be a 5 letter word.")
+
+    @commands.command(name="daily")
+    async def daily(self, ctx: commands.Context):
+        """
+        Earn ARC coins daily.
+        """
+
+        if DailyModel.was_redeemed(ctx.author.id):
+            await ctx.reply("You've already redeemed today, come back tomorrow")
+        else:
+            amt = round(random.gauss(1.0, 0.5), 2)
+            balance = CurrencyModel.get_balance_or_create(ctx.author.id)
+            CurrencyModel.update_balance(ctx.author.id, balance + amt)
+            DailyModel.redeem(ctx.author.id)
+            await ctx.reply(f"Congrats! You won {amt} ARC coins")
+            
 
     @commands.command(name="arcdle")
     async def arcdle(self, ctx: commands.Context):

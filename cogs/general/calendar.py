@@ -21,7 +21,6 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-
 class Calendar(commands.Cog, name="calendar"):
     def __init__(self, bot):
         self.bot = bot

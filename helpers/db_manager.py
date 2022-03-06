@@ -20,9 +20,12 @@ def init_db():
     with open_db() as c:
         # Member tables
         c.execute("CREATE TABLE IF NOT EXISTS member(member_id INTEGER, " \
-            "guild_id INTEGER, balance INTEGER, verified INTEGER, code INTEGER)")
+            "guild_id INTEGER, verified INTEGER, code INTEGER)")
         c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(arcdle_rowid INTEGER PRIMARY KEY, " \
             "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
+
+        # Currency table
+        c.execute("CREATE TABLE IF NOT EXISTS currency(member_id INTEGER PRIMARY KEY, balance INTEGER)")
 
         # Verification table
         c.execute("CREATE TABLE IF NOT EXISTS verification(guild_id INT, " \
@@ -35,6 +38,9 @@ def init_db():
         # ARCdle table
         c.execute("CREATE TABLE IF NOT EXISTS arcdle(message_id INTEGER, visible TEXT, " \
             "hidden TEXT, status INT)")
+
+        # Daily ARCoin table
+        c.execute("CREATE TABLE IF NOT EXISTS daily(member_id INTEGER PRIMARY KEY)")
 
         # Backlog table
         c.execute("CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)")
@@ -56,8 +62,8 @@ class MemberModel(object):
             ).fetchone()
 
             if result:
-                rowid, _, _, balance, verified, code = result
-                return MemberModel(rowid, member_id, guild_id, balance, verified, code)
+                rowid, _, _, verified, code = result
+                return MemberModel(rowid, member_id, guild_id, verified, code)
             else:
                 c.execute(
                     "INSERT INTO member VALUES (?, ?, ?, ?, ?)",
@@ -81,42 +87,37 @@ class MemberModel(object):
             if results:
                 members = []
                 for result in results:
-                    rowid, _, guild_id, balance, verified, code = result
+                    rowid, _, guild_id, verified, code = result
                     members.append(
-                        MemberModel(rowid, member_id, guild_id, balance, verified, code))
+                        MemberModel(rowid, member_id, guild_id, verified, code))
                 return members
             return []
 
-
     @staticmethod
-    def get_richest(n: int = 10):
+    def get_richest(guild_id: int, n: int = 10):
         members = []
         with open_db() as c:
             results = c.execute(
-                "SELECT rowid, * FROM member ORDER BY balance desc LIMIT (?)",
-                (n,)
+                """
+                SELECT member.rowid, member.member_id, guild_id, verified, code FROM member
+                JOIN currency ON member.member_id = currency.member_id
+                WHERE member.guild_id = (?)
+                ORDER BY balance desc LIMIT (?)
+                """,
+                (guild_id, n)
             ).fetchall()
 
             for i in results:
-                rowid, member_id, guild_id, balance, verified, code = i
-                members.append(MemberModel(rowid, member_id, guild_id, balance, verified, code))
+                rowid, member_id, guild_id, verified, code = i
+                members.append(MemberModel(rowid, member_id, guild_id, verified, code))
         return members
 
-    def __init__(self, rowid: int, member_id: int, guild_id: int, balance: int, verified: int, code: int):
+    def __init__(self, rowid: int, member_id: int, guild_id: int, verified: int, code: int):
         self.rowid = rowid
         self.member_id = member_id
         self.guild_id = guild_id
-        self.balance = balance
         self.verified = verified
         self.code = code
-
-    def update_balance(self, balance: int):
-        with open_db() as c:
-            c.execute(
-                "UPDATE member SET balance=(?) WHERE rowid=(?)",
-                (balance, self.rowid)
-            )
-            self.balance = balance
 
     def update_verified(self, verified: int):
         with open_db() as c:
@@ -134,6 +135,33 @@ class MemberModel(object):
             )
             self.code = code
 
+class CurrencyModel(object):
+    @staticmethod
+    def get_balance_or_create(member_id: int):
+        with open_db() as c:
+            result = c.execute(
+                "SELECT * FROM currency WHERE member_id = (?)",
+                (member_id,)
+            ).fetchone()
+            
+            if result is None:
+                balance = 0
+                c.execute(
+                    "INSERT INTO currency VALUES (?, ?)",
+                    (member_id, 0)
+                )
+            else:
+                balance = result[1]
+
+            return balance
+    
+    @staticmethod
+    def update_balance(member_id: int, balance: int):
+        with open_db() as c:
+            c.execute(
+                "UPDATE currency SET balance=(?) WHERE member_id=(?)",
+                (balance, member_id)
+            )
 
 class ARCdleModel(object):
     @staticmethod
@@ -242,6 +270,31 @@ class ARCdleModel(object):
                 """,
                 (visible, hidden, status, self.rowid),
             )
+
+class DailyModel(object):
+    @staticmethod
+    def redeem(member_id: int):
+        if DailyModel.was_redeemed(member_id):
+            return
+        
+        with open_db() as c:
+            c.execute("INSERT INTO daily VALUES (?)",
+                (member_id,)
+            )
+
+    @staticmethod
+    def was_redeemed(member_id: int):
+        with open_db() as c:
+            result = c.execute("SELECT * FROM daily " \
+                "WHERE member_id = (?)",
+                (member_id,)
+            ).fetchone()
+            return result is not None
+
+    @staticmethod
+    def clear_daily():
+        with open_db() as c:
+            result = c.execute("DELETE FROM daily")
 
 class RoleMenuModel(object):
     @staticmethod
