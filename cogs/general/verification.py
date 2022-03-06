@@ -62,6 +62,8 @@ class Verification(commands.Cog, name="verification"):
             member_verif = i
             break
 
+        if member_verif is None:
+            return        
 
         if msg_content.isdigit() and int(msg_content) == member_verif.code:
             # TODO: Handle bizarre circumstance where don't exist
