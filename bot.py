@@ -17,13 +17,15 @@ from disnake.ext import tasks, commands
 from disnake.ext.commands import Bot
 from disnake.ext.commands import Context
 
-from helpers.db_manager import MemberModel, ARCdleModel
+from helpers.db_manager import init_db, MemberModel, ARCdleModel
 
 import exceptions
 
 #
 # Configuration
 #
+
+init_db()
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")

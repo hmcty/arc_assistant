@@ -15,7 +15,7 @@ import datetime as dt
 import dateparser as dp
 from typing import List, Tuple, Union
 
-from helpers.db_manager import RoleMenuModel
+from helpers.db_manager import BacklogModel, RoleMenuModel
 
 import disnake
 from disnake.ext import commands, tasks
@@ -43,15 +43,6 @@ class Reminder(object):
 class General(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
-        with self.open_db() as c:
-            c.execute(
-                "CREATE TABLE IF NOT EXISTS rolemenu(menu INT, role TEXT, emoji TEXT)"
-            )
-
-            c.execute(
-                "CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)"
-            )
-        
         self.reminders = []
 
     def open_db(self):
@@ -141,14 +132,12 @@ class General(commands.Cog, name="general"):
         """
         Print current bot backlog.
         """
-        results = []
-        with self.open_db() as c:
-            results = c.execute("SELECT * FROM backlog").fetchall()
-
-        if len(results) > 0:
+        
+        backlog_items = BacklogModel.get_all()
+        if len(backlog_items) > 0:
             msg = ""
-            for i in range(len(results)):
-                msg += f"{i+1}. {results[i][1]}\n\n"
+            for i in range(len(backlog_items)):
+                msg += f"{i+1}. {backlog_items[i].item}\n\n"
 
             embed = disnake.Embed(title="My backlog", description=msg)
             await ctx.send(embed=embed)
@@ -162,10 +151,7 @@ class General(commands.Cog, name="general"):
         """
 
         if ctx.message.author.id in config["owners"]:
-            with self.open_db() as c:
-                c.execute(
-                    "INSERT INTO backlog(item) VALUES (?)", (item,)
-                )
+            BacklogModel.add(item)
             await ctx.send("Added item to backlog.")
         else:
             embed = disnake.Embed(
@@ -184,17 +170,10 @@ class General(commands.Cog, name="general"):
         if ctx.message.author.id in config["owners"]:
             result = None
             with self.open_db() as c:
-                result = c.execute(
-                    "SELECT * FROM backlog WHERE item LIKE (?)",
-                    ("%" + item + "%",)
-                ).fetchone()
-                if result is None:
-                    await ctx.send("Couldn't find item in backlog.")
-                else:
-                    c.execute(
-                        "DELETE FROM backlog WHERE id=(?)", (result[0],)
-                    )
+                if BacklogModel.find_and_remove(item):
                     await ctx.send("Removed item from backlog.")
+                else:
+                    await ctx.send("Couldn't find item in backlog.")
         else:
             raise commands.MissingPermissions([])
 

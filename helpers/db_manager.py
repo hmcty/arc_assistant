@@ -16,20 +16,24 @@ def open_db():
 # Setup initial database
 #
 
-with open_db() as c:
-    # Member tables
-    c.execute("CREATE TABLE IF NOT EXISTS member(member_id INTEGER, " \
-        "guild_id INTEGER, balance INTEGER, verified INTEGER, code INTEGER)")
-    c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(arcdle_rowid INTEGER PRIMARY KEY, " \
-        "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
+def init_db():
+    with open_db() as c:
+        # Member tables
+        c.execute("CREATE TABLE IF NOT EXISTS member(member_id INTEGER, " \
+            "guild_id INTEGER, balance INTEGER, verified INTEGER, code INTEGER)")
+        c.execute("CREATE TABLE IF NOT EXISTS member_arcdle(arcdle_rowid INTEGER PRIMARY KEY, " \
+            "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
-    # Role menu table
-    c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER, " \
-        "guild_id INTEGER, role TEXT, emoji TEXT)")
+        # Role menu table
+        c.execute("CREATE TABLE IF NOT EXISTS rolemenu(message_id INTEGER, " \
+            "guild_id INTEGER, role TEXT, emoji TEXT)")
 
-    # ARCdle table
-    c.execute("CREATE TABLE IF NOT EXISTS arcdle(message_id INTEGER, visible TEXT, " \
-        "hidden TEXT, status INT)")
+        # ARCdle table
+        c.execute("CREATE TABLE IF NOT EXISTS arcdle(message_id INTEGER, visible TEXT, " \
+            "hidden TEXT, status INT)")
+
+        # Backlog table
+        c.execute("CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)")
 
 #
 # Define database models
@@ -252,3 +256,34 @@ class RoleMenuModel(object):
         self.role = role
         self.emoji = emoji
         
+class BacklogModel(object):
+    @staticmethod
+    def get_all():
+        with open_db() as c:
+            results = c.execute("SELECT * FROM backlog").fetchall()
+            return list(map(lambda x: BacklogModel(x[0], x[1]), results))
+
+    @staticmethod
+    def find_and_remove(item: str):
+        with open_db() as c:
+            result = c.execute(
+                "SELECT * FROM backlog WHERE item LIKE (?)",
+                ("%" + item + "%",)
+            ).fetchone()
+            if result is not None:
+                c.execute(
+                    "DELETE FROM backlog WHERE id=(?)", (result[0],)
+                )
+                return True
+        return False
+
+    @staticmethod
+    def add(item: str):
+        with open_db() as c:
+            c.execute(
+                "INSERT INTO backlog(item) VALUES (?)", (item,)
+            )
+
+    def __init__(self, id: int, item: str):
+        self.id = id
+        self.item = item
