@@ -20,12 +20,7 @@ from helpers.db_manager import MemberModel, CurrencyModel
 
 from exceptions import InternalSQLError
 
-if not os.path.isfile("config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open("config.json") as file:
-        config = json.load(file)
-
+TXN_FEE = 0.05
 
 class Currency(commands.Cog, name="currency"):
     def __init__(self, bot):
@@ -33,7 +28,7 @@ class Currency(commands.Cog, name="currency"):
 
     @commands.command(name="thanks", aliases=["pay"])
     async def thanks(self, ctx: commands.Context, member: disnake.Member,
-        amt: typing.Optional[int] = 1):
+        amt: typing.Optional[int] = 5):
         """
         Grants member a single ARC coin.
         """
@@ -54,12 +49,13 @@ class Currency(commands.Cog, name="currency"):
         if sender_balance is None or receiver_balance is None:
             raise InternalSQLError()
 
-        if sender_balance < amt:
-            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins")
+        if sender_balance < TXN_FEE * amt:
+            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins. " \
+                f"To send coins, you need at least {TXN_FEE} ARC coins per coin sent.")
             return
 
         CurrencyModel.update_balance(receiver, receiver_balance + amt)
-        CurrencyModel.update_balance(sender, sender_balance - amt)
+        CurrencyModel.update_balance(sender, sender_balance - TXN_FEE)
         refid = "<@" + str(receiver) + ">"
         await ctx.reply(f"Gave +{amt} ARC Coins to {refid}")
 

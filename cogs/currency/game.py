@@ -21,11 +21,9 @@ from helpers.db_manager import MemberModel, CurrencyModel, ARCdleModel, DailyMod
 
 from exceptions import InternalSQLError
 
-if not os.path.isfile("config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open("config.json") as file:
-        config = json.load(file)
+ARCDLE_WIN_AMT = 2.5
+ARCDLE_LOSE_AMT = 1.0
+DAILY_LAMBDA = 2.5
 
 class Game(commands.Cog, name="game"):
     def __init__(self, bot):
@@ -107,11 +105,11 @@ class Game(commands.Cog, name="game"):
             winning_amt = 0.0
             member_id = msg.author.id
             if status == 1:
-                winning_amt = 2.0
+                winning_amt = ARCDLE_WIN_AMT
                 board_desc = f"<@{member_id}> guessed in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             elif status == 2:
-                winning_amt = 1.0
+                winning_amt = ARCDLE_LOSE_AMT
                 board_desc = f"<@{member_id}> failed to guess in {len(visible_guesses)} attempt(s), " \
                     f"earning {winning_amt} ARC coins\n\n"
             else:
@@ -165,7 +163,7 @@ class Game(commands.Cog, name="game"):
         if DailyModel.was_redeemed(ctx.author.id):
             await ctx.reply("You've already redeemed today, come back tomorrow")
         else:
-            amt = round(random.gauss(1.0, 0.5), 2)
+            amt = round(random.expovariate(DAILY_LAMBDA), 2)
             balance = CurrencyModel.get_balance_or_create(ctx.author.id)
             CurrencyModel.update_balance(ctx.author.id, balance + amt)
             DailyModel.redeem(ctx.author.id)

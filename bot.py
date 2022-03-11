@@ -18,6 +18,8 @@ from disnake.ext.commands import Bot
 from disnake.ext.commands import Context
 
 from helpers.db_manager import init_db, MemberModel, ARCdleModel
+from sqlalchemy import create_engine
+from sqlalchemy import sessionmaker
 
 import exceptions
 
@@ -25,14 +27,13 @@ import exceptions
 # Configuration
 #
 
-init_db()
-
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
 else:
     with open("config.json") as file:
         config = json.load(file)
 
+# Setup logging
 logger = log.getLogger()
 logger.setLevel(log.NOTSET)
 
@@ -56,6 +57,11 @@ intents = disnake.Intents.default()
 intents.members = True
 intents.reactions = True
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
+
+# Create session maker
+engine = create_engine("sqlite+pysqlite:///:memory:")
+Session = sessionmaker(engine)
+bot.session = Session
 
 # Removes the default help command
 bot.remove_command("help")

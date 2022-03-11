@@ -396,3 +396,18 @@ class VerificationModel(object):
         self.guild_id = guild_id
         self.role_id = role_id
         self.domain = domain
+
+class CalendarModel(object):
+    @staticmethod
+    def get(guild_id: int):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?)
+                """,
+                (guild_id,)
+            ).fetchone()
+            if result:
+                return CalendarModel(guild_id, result[1], result[2])
