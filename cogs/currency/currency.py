@@ -30,7 +30,7 @@ class Currency(commands.Cog, name="currency"):
     async def thanks(self, ctx: commands.Context, member: disnake.Member,
         amt: typing.Optional[int] = 5):
         """
-        Grants member a single ARC coin.
+        Sends ARC coins to another member (does contain a transaction fee).
         """
 
         if member.id == ctx.message.author.id:
@@ -81,13 +81,13 @@ class Currency(commands.Cog, name="currency"):
     @commands.command(name="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
         """
-        Prints top 5 members with most amount of ARC coins in a server.
+        Prints top 15 members with most amount of ARC coins in a server.
         """
 
         if ctx.guild is None:
             raise commands.NoPrivateMessage(message="Command must be used in a server")
 
-        accounts = MemberModel.get_richest(ctx.guild.id, n=10)
+        accounts = MemberModel.get_richest(ctx.guild.id, n=15)
         if len(accounts) == 0:
             leaderboard = "Everybody is broke"
         else:

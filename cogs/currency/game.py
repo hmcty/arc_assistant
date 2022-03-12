@@ -157,7 +157,7 @@ class Game(commands.Cog, name="game"):
     @commands.command(name="daily")
     async def daily(self, ctx: commands.Context):
         """
-        Earn ARC coins daily.
+        Roll for a daily source of ARC coins.
         """
 
         if DailyModel.was_redeemed(ctx.author.id):
@@ -173,7 +173,7 @@ class Game(commands.Cog, name="game"):
     @commands.command(name="arcdle")
     async def arcdle(self, ctx: commands.Context):
         """
-        Starts a game of arcdle for some coins
+        Starts a game of arcdle.
         """
 
         arcdle_game = ARCdleModel.get_member_recent_game(ctx.author.id)

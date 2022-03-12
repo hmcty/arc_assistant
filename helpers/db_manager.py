@@ -45,6 +45,10 @@ def init_db():
         # Backlog table
         c.execute("CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)")
 
+        # Calendar table
+        c.execute("CREATE TABLE IF NOT EXISTS calendar(guild_id INTEGER, " \
+            "channel_id INTEGER, calendar_id TEXT)")
+
 #
 # Define database models
 #
@@ -399,15 +403,72 @@ class VerificationModel(object):
 
 class CalendarModel(object):
     @staticmethod
-    def get(guild_id: int):
+    def get_all():
         with open_db() as c:
-            result = c.execute(
+            results = c.execute("SELECT * FROM calendar").fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get_by_guild(guild_id: int):
+        with open_db() as c:
+            results = c.execute(
                 """
                 SELECT *
                 FROM calendar
                 WHERE guild_id=(?)
                 """,
                 (guild_id,)
+            ).fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get_by_channel(guild_id: int, channel_id: int):
+        with open_db() as c:
+            results = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?) AND channel_id=(?)
+                """,
+                (guild_id, channel_id)
+            ).fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get(guild_id: int, channel_id: int, calendar_id: str):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?) AND channel_id=(?)
+                AND calendar_id=(?)
+                """,
+                (guild_id, channel_id, calendar_id)
             ).fetchone()
             if result:
-                return CalendarModel(guild_id, result[1], result[2])
+                return CalendarModel(result[0], result[1], result[2])
+            else:
+                return None
+
+    @staticmethod
+    def add(guild_id: int, channel_id: int, calendar_id: str):
+        with open_db() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO calendar (guild_id, channel_id, calendar_id) " \
+                "VALUES (?, ?, ?)",
+                (guild_id, channel_id, calendar_id)
+            )
+
+    def __init__(self, guild_id: int, channel_id: int, calendar_id: str):
+        self.guild_id = guild_id
+        self.channel_id = channel_id
+        self.calendar_id = calendar_id
+
+    def remove(self):
+        with open_db() as c:
+            c.execute(
+                "DELETE FROM calendar " \
+                "WHERE guild_id=(?) AND channel_id=(?) AND calendar_id=(?)",
+                (self.guild_id, self.channel_id, self.calendar_id)
+            )
