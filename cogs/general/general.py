@@ -1,6 +1,5 @@
 """"
-Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
-Copyright © Krypton 2021 - https://github.com/kkrypt0nn
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
 Holds common utility commands.
@@ -79,6 +78,25 @@ class General(commands.Cog, name="general"):
 
         refid = "<@" + str(ctx.message.author.id) + "> "
         await ctx.send(refid + answers[random.randint(0, len(answers) - 1)])
+
+    @commands.command(name="say", aliases=["echo"])
+    async def say(self, ctx: commands.Context, *, msg: str):
+        """
+        Echo your message.
+        """
+        await ctx.send(msg)
+
+    @commands.command(name="embed")
+    async def embed(self, ctx: commands.Context, title: str, desc: str):
+        """
+        Echo your message with embed.
+        """
+        if ctx.message.author.id in config["owners"]:
+            embed = disnake.Embed(title=title,
+                description=desc, color=0x42F56C)
+            await ctx.send(embed=embed)
+        else:
+            raise commands.MissingPermissions([])
 
     @commands.command(name="backlog", usage="backlog")
     async def backlog(self, ctx: commands.Context):

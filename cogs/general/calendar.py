@@ -33,26 +33,21 @@ class Calendar(commands.Cog, name="calendar"):
         else:
             embed = disnake.Embed(title=f"{title}'s events:")
 
-            event_ids = {} 
-            event_ids[events[0]["id"]] = True
+            print(events)
             description = util.construct_calendar_msg(events[0])
             for i in range(1, len(events)):
-                if events[i]["id"] in event_ids:
-                    continue
                 description += "\n\n"
                 description += util.construct_calendar_msg(events[i])
-                event_ids[events[i]["id"]] = True
 
             embed.description = description
             await channel.send(embed=embed)
 
-    @tasks.loop(hours=1)
+    @tasks.loop(seconds=10)
     async def check_reminder(self):
         now = datetime.utcnow()
-
         # 12am EST in UTC
-        if now.hour == 13:
-            if now.weekday() == 0:
+        if now.hour == 17:
+            if now.weekday() == 5:
                 await self.send_weekly_reminder()
             else:
                 await self.send_daily_reminder()
@@ -63,9 +58,9 @@ class Calendar(commands.Cog, name="calendar"):
         for calendar in calendars:
             cal_events = util.collect_today([calendar.calendar_id])
             if calendar.channel_id not in events:
-                events[calendar.channel_id] = [cal_events]
+                events[calendar.channel_id] = list(cal_events)
             else:
-                events[calendar.channel_id] += cal_events
+                events[calendar.channel_id].extend(cal_events)
         
         for channel_id, cal_events in events.items():
             channel = self.bot.get_channel(channel_id)
@@ -75,14 +70,18 @@ class Calendar(commands.Cog, name="calendar"):
         calendars = CalendarModel.get_all()
         events = {}
         for calendar in calendars:
-            cal_events = util.collect_week([calendar.calendar_id])
+            cal_events = util.collect_week(list(calendar.calendar_id))
             if calendar.channel_id not in events:
-                events[calendar.channel_id] = [cal_events]
+                events[calendar.channel_id] = list(cal_events)
             else:
-                events[calendar.channel_id] += cal_events
-        
+                events[calendar.channel_id].extend(cal_events)
+
         for channel_id, cal_events in events.items():
             channel = self.bot.get_channel(channel_id)
+            if channel is None:
+                channel = await self.bot.fetch_channel(channel_id)
+            if channel is None:
+                continue
             await self.send_update("this week", channel, cal_events)
 
     @commands.command(name="today", usage="today")

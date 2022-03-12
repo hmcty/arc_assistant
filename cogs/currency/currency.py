@@ -45,7 +45,7 @@ class Currency(commands.Cog, name="currency"):
         CurrencyModel.update_balance(receiver, receiver_balance + THANKS_AMT)
         CurrencyModel.update_balance(sender, sender_balance - TXN_FEE)
         refid = "<@" + str(receiver) + ">"
-        await ctx.reply(f"Gifted +{THANKS_AMT} ARC Coins to {refid}")
+        await ctx.reply(f"Gifted {THANKS_AMT} ARC Coins to {refid}")
 
     @commands.command(name="pay", aliases=["send"], usage="pay <member> <amount>")
     async def pay(self, ctx: commands.Context, member: disnake.Member, amt: float):

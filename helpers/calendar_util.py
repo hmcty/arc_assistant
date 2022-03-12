@@ -7,6 +7,7 @@ from typing import List
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
+from helpers.db_manager import CalendarModel
 
 TIMEZONE_LEN = 6
 
@@ -88,8 +89,12 @@ def create_service():
     return build('calendar', 'v3', credentials=creds)
 
 def get_calendar_name(calendar_id: str):
+    """
+    Gets name associated with a calendar id.
+    """
     try:
-        calendar = create_service().calendars().get(calendarId=calendar_id).execute()
+        calendar_api = create_service().calendars()
+        calendar = calendar_api.get(calendarId=calendar_id).execute()
         return calendar['summary']
     except HttpError:
         return None
@@ -104,10 +109,13 @@ def collect_today(calendar_ids: List[str]):
     events_api = create_service().events()
     events = []
     for calendar_id in calendar_ids:
-        events_result = events_api.list(calendarId=calendar_id,
-            timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
-            singleEvents=True, orderBy='startTime').execute()
-        events += events_result.get('items', [])
+        try:
+            events_result = events_api.list(calendarId=calendar_id,
+                timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
+                singleEvents=True, orderBy='startTime').execute()
+        except HttpError:
+            continue
+        events.extend(events_result.get('items', []))
     return events
 
 
@@ -121,8 +129,11 @@ def collect_week(calendar_ids: List[str]):
     events_api = create_service().events()
     events = []
     for calendar_id in calendar_ids:
-        events_result = events_api.list(calendarId=calendar_id,
-            timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
-            singleEvents=True, orderBy='startTime').execute()
-        events += events_result.get('items', [])
+        try:
+            events_result = events_api.list(calendarId=calendar_id,
+                timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
+                singleEvents=True, orderBy='startTime').execute()
+        except HttpError:
+            continue
+        events.extend(events_result.get('items', []))
     return events

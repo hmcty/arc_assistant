@@ -1,3 +1,10 @@
+""""
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
+
+Description:
+Create and post small reminders.
+"""
+
 import datetime as dt
 import dateparser as dp
 from typing import List

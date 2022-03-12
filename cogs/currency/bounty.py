@@ -2,10 +2,8 @@
 Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
-Enables on-server currency.
+Enables server bounties.
 """
-
-import random
 
 import disnake
 from disnake.ext import commands

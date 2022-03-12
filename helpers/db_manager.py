@@ -81,7 +81,7 @@ class MemberModel(object):
                 con.close()
 
                 return MemberModel(c.lastrowid, member_id, guild_id, 0, 0)
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             return None
 
     @staticmethod
@@ -186,7 +186,7 @@ class ARCdleModel(object):
     @staticmethod
     def clear_games():
         with open_db() as c:
-            result = c.execute(
+            c.execute(
                 """
                 DELETE FROM arcdle
                 """,

@@ -1,6 +1,5 @@
 """"
-Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
-Copyright © Krypton 2021 - https://github.com/kkrypt0nn
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
 Posts information about active commands.
