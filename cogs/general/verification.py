@@ -72,8 +72,6 @@ class Verification(commands.Cog, name="verification"):
                 await member.add_roles(role)
             member_verif.update_verified(1)
             await msg.channel.send("You are verified on {}.".format(guild.name))
-        elif member_verif.code != 0:
-            await msg.channel.send("Invalid code, please try again")
         elif email.check(msg_content):
             # Handle user DMing valid email
             if msg_content.split("@")[1] == verif_config.domain:
@@ -90,6 +88,8 @@ class Verification(commands.Cog, name="verification"):
                     raise SMTPError(e)
             else:
                 await msg.channel.send("You need to use a Purdue email.")
+        elif member_verif.code != 0:
+            await msg.channel.send("Invalid code, please try again")
         else:
             await msg.channel.send("Invalid email, please try again")
 
