@@ -55,6 +55,7 @@ logger.addHandler(file_handler)
 #
 
 intents = disnake.Intents.default()
+intents.presences = False
 intents.members = True
 intents.reactions = True
 bot = Bot(command_prefix=config["bot_prefix"], intents=intents)
