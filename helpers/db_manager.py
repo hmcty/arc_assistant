@@ -25,7 +25,7 @@ def init_db():
             "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
         # Currency table
-        c.execute("CREATE TABLE IF NOT EXISTS currency(member_id INTEGER PRIMARY KEY, balance INTEGER)")
+        c.execute("CREATE TABLE IF NOT EXISTS currency(member_id INTEGER PRIMARY KEY, balance REAL)")
 
         # Verification table
         c.execute("CREATE TABLE IF NOT EXISTS verification(guild_id INT, " \
@@ -48,6 +48,10 @@ def init_db():
         # Calendar table
         c.execute("CREATE TABLE IF NOT EXISTS calendar(guild_id INTEGER, " \
             "channel_id INTEGER, calendar_id TEXT)")
+
+        # Bounty table
+        c.execute("CREATE TABLE IF NOT EXISTS bounty(title TEXT, " \
+            "owner_id INT, guild_id INT, channel_id INT, message_id INT, amt REAL)")
 
 #
 # Define database models
@@ -149,10 +153,10 @@ class CurrencyModel(object):
             ).fetchone()
             
             if result is None:
-                balance = 0
+                balance = 0.0
                 c.execute(
                     "INSERT INTO currency VALUES (?, ?)",
-                    (member_id, 0)
+                    (member_id, balance)
                 )
             else:
                 balance = result[1]
@@ -160,7 +164,7 @@ class CurrencyModel(object):
             return balance
     
     @staticmethod
-    def update_balance(member_id: int, balance: int):
+    def update_balance(member_id: int, balance: float):
         with open_db() as c:
             c.execute(
                 "UPDATE currency SET balance=(?) WHERE member_id=(?)",
@@ -471,4 +475,59 @@ class CalendarModel(object):
                 "DELETE FROM calendar " \
                 "WHERE guild_id=(?) AND channel_id=(?) AND calendar_id=(?)",
                 (self.guild_id, self.channel_id, self.calendar_id)
+            )
+
+class BountyModel(object):
+    @staticmethod
+    def get(title: str):
+        with open_db() as c:
+            result = c.execute(
+                "SELECT * FROM bounty WHERE title like (?)",
+                (title,)
+            ).fetchone()
+
+            if result:
+                return BountyModel(result[0], result[1], result[2],
+                    result[3], result[4], result[5])
+            else:
+                return None
+
+    @staticmethod
+    def create(title: str, owner_id: int, guild_id: int, channel_id: int,
+        message_id: int, amt: float):
+        with open_db() as c:
+            c.execute(
+                "INSERT INTO bounty (title, owner_id, guild_id, channel_id, message_id, amt) " \
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (title, owner_id, guild_id, channel_id, message_id, amt)
+            )
+
+    def __init__(self, title: str, owner_id: int, guild_id: int, channel_id: int,
+        message_id: int, amt: float):
+        self.title = title
+        self.owner_id = owner_id
+        self.guild_id = guild_id
+        self.channel_id = channel_id
+        self.message_id = message_id
+        self.amt = amt
+
+    def contribute(self, amt: float):
+        with open_db() as c:
+            c.execute(
+                """
+                UPDATE bounty SET amt=(?) WHERE
+                "title like (?) AND owner_id=(?)
+                """,
+                (amt + self.amt, self.title, self.owner_id)
+            )
+        self.amt += amt
+
+    def complete(self):
+        with open_db() as c:
+            c.execute(
+                """
+                DELETE FROM bounty WHERE
+                title like (?) AND owner_id=(?)
+                """,
+                (self.title, self.owner_id)
             )

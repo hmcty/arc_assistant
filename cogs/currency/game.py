@@ -2,14 +2,9 @@
 Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
-Enables on-server currency.
+Server games connected to currency.
 """
 
-import json
-import os
-import sys
-import sqlite3
-import typing
 import random
 from datetime import date
 
@@ -17,9 +12,7 @@ import disnake
 from disnake.ext import commands, tasks
 
 from helpers import arcdle
-from helpers.db_manager import MemberModel, CurrencyModel, ARCdleModel, DailyModel
-
-from exceptions import InternalSQLError
+from helpers.db_manager import CurrencyModel, ARCdleModel, DailyModel
 
 ARCDLE_WIN_AMT = 2.5
 ARCDLE_LOSE_AMT = 1.0
@@ -154,10 +147,10 @@ class Game(commands.Cog, name="game"):
         else:
             await msg.channel.send("Guess must be a 5 letter word.")
 
-    @commands.command(name="daily", usage="daily")
+    @commands.command(name="daily")
     async def daily(self, ctx: commands.Context):
         """
-        Roll for a daily source of ARC coins.
+        Earn ARC coins daily.
         """
 
         if DailyModel.was_redeemed(ctx.author.id):
@@ -170,10 +163,10 @@ class Game(commands.Cog, name="game"):
             await ctx.reply(f"Congrats! You won {amt} ARC coins")
             
 
-    @commands.command(name="arcdle", usage="arcdle")
+    @commands.command(name="arcdle")
     async def arcdle(self, ctx: commands.Context):
         """
-        Starts a game of arcdle.
+        Starts a game of arcdle for some coins
         """
 
         arcdle_game = ARCdleModel.get_member_recent_game(ctx.author.id)

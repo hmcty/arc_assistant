@@ -57,7 +57,7 @@ class Currency(commands.Cog, name="currency"):
             await ctx.reply("Stop trying to print ARC coins")
             return
 
-        if amt <= 0:
+        if amt <= 0.0:
             await ctx.reply("No stealing")
             return
 
