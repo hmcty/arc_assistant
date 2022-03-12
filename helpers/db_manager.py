@@ -70,13 +70,13 @@ class MemberModel(object):
                 return MemberModel(rowid, member_id, guild_id, verified, code)
             else:
                 c.execute(
-                    "INSERT INTO member VALUES (?, ?, ?, ?, ?)",
-                    (member_id, guild_id, 0, 0, 0)
+                    "INSERT INTO member VALUES (?, ?, ?, ?)",
+                    (member_id, guild_id, 0, 0)
                 )
                 con.commit()
                 con.close()
 
-                return MemberModel(c.lastrowid, member_id, guild_id, 0, 0, 0)
+                return MemberModel(c.lastrowid, member_id, guild_id, 0, 0)
         except sqlite3.Error as e:
             return None
 
@@ -193,7 +193,7 @@ class ARCdleModel(object):
         with open_db() as c:
             result = c.execute(
                 """
-                SELECT rowid, message_id, visible, hidden, status
+                SELECT arcdle.rowid, message_id, visible, hidden, status
                 FROM arcdle
                 INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
                 WHERE status=0 AND member_id=(?)

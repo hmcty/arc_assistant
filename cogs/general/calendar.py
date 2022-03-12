@@ -85,7 +85,7 @@ class Calendar(commands.Cog, name="calendar"):
             channel = self.bot.get_channel(channel_id)
             await self.send_update("this week", channel, cal_events)
 
-    @commands.command(name="today")
+    @commands.command(name="today", usage="today")
     async def get_todays_events(self, ctx: commands.Context):
         """
         Prints a list of scheduled events for the current day.
@@ -97,7 +97,7 @@ class Calendar(commands.Cog, name="calendar"):
             "today", ctx.channel, events
         )
 
-    @commands.command(name="week")
+    @commands.command(name="week", usage="week")
     async def get_weeks_events(self, ctx):
         """
         Prints a list of scheduled events for the current week.
@@ -109,7 +109,7 @@ class Calendar(commands.Cog, name="calendar"):
             "this week", ctx.channel, events
         )
 
-    @commands.command(name="addcalendar")
+    @commands.command(name="addcalendar", usage="addcalendar <gcalendar_id>")
     async def add_calendar(self, ctx: commands.Context, calendar_id: str):
         """
         Set a channel to print calendar reminders. 
@@ -124,7 +124,7 @@ class Calendar(commands.Cog, name="calendar"):
         else:
             await ctx.reply("Calendar couldn't be accessed, check permissions")
 
-    @commands.command(name="listcalendars")
+    @commands.command(name="listcalendars", usage="listcalendars")
     async def list_calendars(self, ctx: commands.Context):
         """
         List all calendars for a given channel.
@@ -139,7 +139,7 @@ class Calendar(commands.Cog, name="calendar"):
         else:
             await ctx.reply("No calendars added to this channel")
 
-    @commands.command(name="removecalendar")
+    @commands.command(name="removecalendar", usage="removecalendar <gcalendar_id>")
     async def remove_calendar(self, ctx: commands.Context, calendar_id: str):
         """
         Stop calendar reminders from being to this channel.

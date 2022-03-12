@@ -165,8 +165,7 @@ async def on_command_error(ctx: commands.Context,
         isinstance(error, commands.MemberNotFound) or \
         isinstance(error, commands.CommandNotFound) or \
         isinstance(error, commands.UserInputError) or \
-        isinstance(error, commands.NoPrivateMessage) or \
-        isinstance(error, exceptions.InternalSQLError):
+        isinstance(error, commands.NoPrivateMessage):
         embed = disnake.Embed(
             title="Error!",
             description=str(error).capitalize(),
