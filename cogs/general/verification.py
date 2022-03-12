@@ -66,8 +66,17 @@ class Verification(commands.Cog, name="verification"):
         if msg_content.isdigit() and int(msg_content) == member_verif.code:
             # TODO: Handle bizarre circumstance where don't exist
             guild = self.bot.get_guild(member_verif.guild_id)
+            if guild is None:
+                guild = await self.bot.fetch_guild(member_verif.guild_id)
+            
             role = guild.get_role(verif_config.role_id)
+            if role is None:
+                role = await self.bot.fetch_role(verif_config.role_id)
+
             member = guild.get_member(msg.author.id)
+            if member is None:
+                member = await self.bot.fetch_member(msg.author.id)
+
             if role not in member.roles:
                 await member.add_roles(role)
             member_verif.update_verified(1)
