@@ -13,7 +13,7 @@ from disnake.ext import commands
 from helpers.db_manager import CurrencyModel, BountyModel
 from exceptions import InternalSQLError
 
-class Bounty(commands.Cog, name="bount"):
+class Bounty(commands.Cog, name="bounty"):
     def __init__(self, bot):
         self.bot = bot
         self.claims = {}

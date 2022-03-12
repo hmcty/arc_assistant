@@ -147,7 +147,7 @@ class Game(commands.Cog, name="game"):
         else:
             await msg.channel.send("Guess must be a 5 letter word.")
 
-    @commands.command(name="daily")
+    @commands.command(name="daily", usage="daily")
     async def daily(self, ctx: commands.Context):
         """
         Earn ARC coins daily.
@@ -163,7 +163,7 @@ class Game(commands.Cog, name="game"):
             await ctx.reply(f"Congrats! You won {amt} ARC coins")
             
 
-    @commands.command(name="arcdle")
+    @commands.command(name="arcdle", usage="arcdle")
     async def arcdle(self, ctx: commands.Context):
         """
         Starts a game of arcdle for some coins
