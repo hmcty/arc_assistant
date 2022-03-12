@@ -1,6 +1,5 @@
 """"
-Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
-Copyright © Krypton 2021 - https://github.com/kkrypt0nn
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
 Posts information about active commands.
@@ -25,7 +24,7 @@ class Help(commands.Cog, name="help"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="help")
+    @commands.command(name="help", usage="help")
     async def help(self, ctx: Context):
         """
         List all commands from every Cog the bot has loaded.
@@ -39,18 +38,16 @@ class Help(commands.Cog, name="help"):
         for i in self.bot.cogs:
             cog = self.bot.get_cog(i.lower())
             commands = cog.get_commands()
-            command_list = [command.name for command in commands]
-            command_usage = [command.signature for command in commands ]
+            command_usage = [command.usage for command in commands ]
             command_description = [command.help for command in commands]
             help_text = "\n".join(
-                f"{prefix}{n} {u} \n ```{h}```" for n, u, h
-                    in zip(command_list, command_usage, command_description)
+                f"{prefix}{u} \n ```{h}```" for u, h
+                    in zip(command_usage, command_description)
             )
             embed.add_field(
                 name=i.capitalize(), value=f"{help_text}", inline=False
             )
         await ctx.send(embed=embed)
-
 
 def setup(bot):
     bot.add_cog(Help(bot))

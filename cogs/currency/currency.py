@@ -5,44 +5,59 @@ Description:
 Enables on-server currency.
 """
 
-import json
-import os
-import sys
-import sqlite3
 import typing
-from datetime import date
-
 import disnake
 from disnake.ext import commands
 
-from helpers import arcdle
 from helpers.db_manager import MemberModel, CurrencyModel
-
 from exceptions import InternalSQLError
 
-if not os.path.isfile("config.json"):
-    sys.exit("'config.json' not found! Please add it and try again.")
-else:
-    with open("config.json") as file:
-        config = json.load(file)
-
+THANKS_AMT = 5.0
+TXN_FEE = 0.5
 
 class Currency(commands.Cog, name="currency"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name="thanks", aliases=["pay"])
-    async def thanks(self, ctx: commands.Context, member: disnake.Member,
-        amt: typing.Optional[int] = 1):
+    @commands.command(name="thanks", aliases=["thank", "thx"], usage="thanks <member>")
+    async def thanks(self, ctx: commands.Context, member: disnake.Member):
         """
-        Grants member a single ARC coin.
+        Mints and sends ARC coins to another member (contains txn fee).
         """
 
         if member.id == ctx.message.author.id:
             await ctx.reply("Stop trying to print ARC coins")
             return
 
-        if amt <= 0:
+        sender = ctx.author.id
+        sender_balance = CurrencyModel.get_balance_or_create(sender)
+
+        receiver = member.id
+        receiver_balance = CurrencyModel.get_balance_or_create(receiver)
+        if sender_balance is None or receiver_balance is None:
+            raise InternalSQLError()
+
+        if sender_balance < TXN_FEE:
+            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins. " \
+                f"To send coins, you need at least {TXN_FEE} ARC coins per coin sent.")
+            return
+
+        CurrencyModel.update_balance(receiver, receiver_balance + THANKS_AMT)
+        CurrencyModel.update_balance(sender, sender_balance - TXN_FEE)
+        refid = "<@" + str(receiver) + ">"
+        await ctx.reply(f"Gifted {THANKS_AMT} ARC Coins to {refid}")
+
+    @commands.command(name="pay", aliases=["send"], usage="pay <member> <amount>")
+    async def pay(self, ctx: commands.Context, member: disnake.Member, amt: float):
+        """
+        Sends ARC coins to another member using your balance (no txn fee).
+        """
+
+        if member.id == ctx.message.author.id:
+            await ctx.reply("Stop trying to print ARC coins")
+            return
+
+        if amt <= 0.0:
             await ctx.reply("No stealing")
             return
 
@@ -55,15 +70,16 @@ class Currency(commands.Cog, name="currency"):
             raise InternalSQLError()
 
         if sender_balance < amt:
-            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins")
+            await ctx.reply(f"Insufficient balance, you have {sender_balance} ARC coins. " \
+                f"To send coins, you need at least {TXN_FEE} ARC coins per coin sent.")
             return
 
         CurrencyModel.update_balance(receiver, receiver_balance + amt)
         CurrencyModel.update_balance(sender, sender_balance - amt)
         refid = "<@" + str(receiver) + ">"
-        await ctx.reply(f"Gave +{amt} ARC Coins to {refid}")
+        await ctx.reply(f"Paid +{amt} ARC Coins to {refid}")
 
-    @commands.command(name="balance")
+    @commands.command(name="balance", usage="balance <member (Optional)>")
     async def balance(self, ctx: commands.Context,
         member: typing.Optional[disnake.Member] = None):
         """
@@ -82,16 +98,16 @@ class Currency(commands.Cog, name="currency"):
         else:
             await ctx.reply(f"<@{member_id}> has {balance} ARC coins")
 
-    @commands.command(name="leaderboard")
+    @commands.command(name="leaderboard", usage="leaderboard")
     async def leaderboard(self, ctx: commands.Context):
         """
-        Prints top 5 members with most amount of ARC coins in a server.
+        Prints top 15 members with most amount of ARC coins in a server.
         """
 
         if ctx.guild is None:
             raise commands.NoPrivateMessage(message="Command must be used in a server")
 
-        accounts = MemberModel.get_richest(ctx.guild.id, n=10)
+        accounts = MemberModel.get_richest(ctx.guild.id, n=15)
         if len(accounts) == 0:
             leaderboard = "Everybody is broke"
         else:

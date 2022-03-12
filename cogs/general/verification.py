@@ -15,11 +15,9 @@ from email.message import EmailMessage
 import disnake
 from disnake.ext import commands
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
 from helpers import email
 from helpers.db_manager import VerificationModel, MemberModel
+from exceptions import SMTPError
 
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
@@ -88,8 +86,8 @@ class Verification(commands.Cog, name="verification"):
                         "**Reply here with your verification code**. " \
                         "If you haven't received it, check your spam folder.")
                 except Exception as e:
-                    # TODO: Update to actually handle exception
-                    await msg.channel.send("Email failed to send.")
+                    await msg.channel.send("Email failed to send, contact server admin.")
+                    raise SMTPError(e)
             else:
                 await msg.channel.send("You need to use a Purdue email.")
         else:
@@ -109,17 +107,19 @@ class Verification(commands.Cog, name="verification"):
                 f"to be verified on the {member.guild.name}"
             )
 
-    @commands.command(name="configureverify")
-    async def configure(self, ctx: commands.Context, role: disnake.Role,
-        domain: str):
-        
+    @commands.command(name="configureverify", usage="configureverify <role> <domain>")
+    async def configure(self, ctx: commands.Context, role: disnake.Role, domain: str):
+        """
+        Configures verification settings for a server.
+        """
+
         if ctx.guild is None:
             raise commands.NoPrivateMessage(message="Command must be used in a server")
 
         VerificationModel.configure(ctx.guild.id, role.id, domain)
         await ctx.reply(f"Verification configured for @{domain} domains")
 
-    @commands.command(name="verify")
+    @commands.command(name="verify", usage="verify")
     async def verify(self, ctx: commands.Context):
         """
         DMs member to verify email address is under Purdue domain.

@@ -1,6 +1,5 @@
 """"
-Modified by Harrison McCarty - Autonomous Robotics Club of Purdue
-Copyright © Krypton 2021 - https://github.com/kkrypt0nn
+Created by Harrison McCarty - Autonomous Robotics Club of Purdue
 
 Description:
 Holds common utility commands.
@@ -10,9 +9,6 @@ import json
 import os
 import random
 import sys
-import datetime as dt
-import dateparser as dp
-from typing import List, Tuple, Union
 
 from helpers.db_manager import BacklogModel, RoleMenuModel
 
@@ -25,34 +21,18 @@ else:
     with open("config.json") as file:
         config = json.load(file)
 
-class Reminder(object):
-    def __init__(self, ctx: commands.Context, members: [disnake.Member], reason: str, time: dt.datetime):
-        self.ctx = ctx
-        self.members = members
-        self.time = time
-        self.reason = reason
-    
-    async def send_msg(self):
-        refids = ", ".join(f"<@{x.id}>" for x in self.members)
-        await self.ctx.send(f"{refids} {self.reason}")
-
-    def is_ready(self):
-        return self.time < dt.datetime.now()
-
 class General(commands.Cog, name="general"):
     def __init__(self, bot):
         self.bot = bot
-        self.reminders = []
 
-    @commands.command(name="status")
+    @commands.command(name="status", usage="status")
     async def info(self, ctx: commands.Context):
         """
         Get some useful (or not) information about the bot.
         """
-
         await ctx.send("Still alive lol")
 
-    @commands.command(name="..")
+    @commands.command(name="..", usage="..")
     async def ellipses(self, ctx: commands.Context):
         """
         Reinforce the dramatic atmosphere.
@@ -60,31 +40,7 @@ class General(commands.Cog, name="general"):
 
         await ctx.send("*GASPS*")
 
-    @tasks.loop(seconds=10)
-    async def send_reminders(self):
-        for reminder in self.reminders:
-            if reminder.is_ready():
-                self.reminders.remove(reminder)
-                await reminder.send_msg()
-
-        if len(self.reminders) == 0:
-            self.send_reminders.stop()
-
-    @commands.command(name="remind")
-    async def remind(self, ctx: commands.Context, members: commands.Greedy[disnake.Member],
-        reason: str, timeinfo: str):
-        """
-        Reminds the list of members of a custom message at a set time.
-        'timeinfo' follows example format: "Jan 02 01:30 AM"
-        """
-
-        rtime = dp.parse(timeinfo)
-        self.reminders.append(Reminder(ctx, members, reason, rtime))
-        await ctx.send(f"Reminder set for {rtime.strftime('%b %d %I:%M %p')}")
-        if not self.send_reminders.is_running():
-            self.send_reminders.start()
-
-    @commands.command(name="poll")
+    @commands.command(name="poll", usage="poll <title>")
     async def poll(self, ctx: commands.Context, *, title: str):
         """
         Create a poll where members can vote.
@@ -98,7 +54,7 @@ class General(commands.Cog, name="general"):
         await embed_message.add_reaction("👎")
         await embed_message.add_reaction("🤷")
 
-    @commands.command(name="8ball")
+    @commands.command(name="8ball", usage="8ball <question (Optional)>")
     async def eight_ball(self, ctx: commands.Context, *, question: str = ''):
         """
         Ask any question to the bot.
@@ -123,7 +79,26 @@ class General(commands.Cog, name="general"):
         refid = "<@" + str(ctx.message.author.id) + "> "
         await ctx.send(refid + answers[random.randint(0, len(answers) - 1)])
 
-    @commands.command(name="backlog")
+    @commands.command(name="say", aliases=["echo"])
+    async def say(self, ctx: commands.Context, *, msg: str):
+        """
+        Echo your message.
+        """
+        await ctx.send(msg)
+
+    @commands.command(name="embed")
+    async def embed(self, ctx: commands.Context, title: str, desc: str):
+        """
+        Echo your message with embed.
+        """
+        if ctx.message.author.id in config["owners"]:
+            embed = disnake.Embed(title=title,
+                description=desc, color=0x42F56C)
+            await ctx.send(embed=embed)
+        else:
+            raise commands.MissingPermissions([])
+
+    @commands.command(name="backlog", usage="backlog")
     async def backlog(self, ctx: commands.Context):
         """
         Print current bot backlog.
@@ -140,7 +115,7 @@ class General(commands.Cog, name="general"):
         else:
             await ctx.send("No items in the backlog!")
 
-    @commands.command(name="todo")
+    @commands.command(name="todo", usage="todo <item>")
     async def todo(self, ctx: commands.Context, item: str):
         """
         Adds item to backlog.
@@ -157,7 +132,7 @@ class General(commands.Cog, name="general"):
             )
             await ctx.send(embed=embed)
 
-    @commands.command(name="finished")
+    @commands.command(name="finished", usage="finished <item>")
     async def finished(self, ctx: commands.Context, item: str):
         """
         Removes item from backlog.
@@ -173,7 +148,8 @@ class General(commands.Cog, name="general"):
         else:
             raise commands.MissingPermissions([])
 
-    @commands.command(name="rolemenu")
+    @commands.command(name="rolemenu",
+        usage="rolemenu <title> <role1> <role2> ... <emoji1> <emoji2> ...")
     async def rolemenu(self, ctx: commands.Context, title: str,
         roles: commands.Greedy[disnake.Role], *, emojis: str):
         """

@@ -25,14 +25,16 @@ import exceptions
 # Configuration
 #
 
-init_db()
-
 if not os.path.isfile("config.json"):
     sys.exit("'config.json' not found! Please add it and try again.")
 else:
     with open("config.json") as file:
         config = json.load(file)
 
+# Setup database
+init_db()
+
+# Setup logging
 logger = log.getLogger()
 logger.setLevel(log.NOTSET)
 
@@ -163,8 +165,7 @@ async def on_command_error(ctx: commands.Context,
         isinstance(error, commands.MemberNotFound) or \
         isinstance(error, commands.CommandNotFound) or \
         isinstance(error, commands.UserInputError) or \
-        isinstance(error, commands.NoPrivateMessage) or \
-        isinstance(error, exceptions.InternalSQLError):
+        isinstance(error, commands.NoPrivateMessage):
         embed = disnake.Embed(
             title="Error!",
             description=str(error).capitalize(),

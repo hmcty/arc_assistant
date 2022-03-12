@@ -2,10 +2,12 @@ from datetime import datetime, timedelta
 import json
 import os
 import sys
+from typing import List
 
-import discord
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from google.oauth2 import service_account
+from helpers.db_manager import CalendarModel
 
 TIMEZONE_LEN = 6
 
@@ -86,38 +88,52 @@ def create_service():
     creds = service_account.Credentials.from_service_account_info(info)
     return build('calendar', 'v3', credentials=creds)
 
+def get_calendar_name(calendar_id: str):
+    """
+    Gets name associated with a calendar id.
+    """
+    try:
+        calendar_api = create_service().calendars()
+        calendar = calendar_api.get(calendarId=calendar_id).execute()
+        return calendar['summary']
+    except HttpError:
+        return None
 
-def collect_today(calendar_id):
+def collect_today(calendar_ids: List[str]):
     """
     Gets events within 24 hours of current time.
     """
-    print("Parsing date")
     start = datetime.utcnow()
     end = start + timedelta(1)
 
-    print("Obtaining and returing events")
-    events_result = create_service().events().list(calendarId=calendar_id,
-                                                   timeMin=start.isoformat() + 'Z',
-                                                   timeMax=end.isoformat() + 'Z',
-                                                   singleEvents=True,
-                                                   orderBy='startTime').execute()
-    events = events_result.get('items', [])
+    events_api = create_service().events()
+    events = []
+    for calendar_id in calendar_ids:
+        try:
+            events_result = events_api.list(calendarId=calendar_id,
+                timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
+                singleEvents=True, orderBy='startTime').execute()
+        except HttpError:
+            continue
+        events.extend(events_result.get('items', []))
     return events
 
 
-def collect_week(calendar_id):
+def collect_week(calendar_ids: List[str]):
     """
     Collects n google calendar events within a week of current time.
     """
-    print("Parsing date")
     start = datetime.utcnow()
     end = start + timedelta(days=7)
 
-    print("Obtaining and returing events")
-    events_result = create_service().events().list(calendarId=calendar_id,
-                                                   timeMin=start.isoformat() + 'Z',
-                                                   timeMax=end.isoformat() + 'Z',
-                                                   singleEvents=True,
-                                                   orderBy='startTime').execute()
-    events = events_result.get('items', [])
+    events_api = create_service().events()
+    events = []
+    for calendar_id in calendar_ids:
+        try:
+            events_result = events_api.list(calendarId=calendar_id,
+                timeMin=start.isoformat() + 'Z', timeMax=end.isoformat() + 'Z',
+                singleEvents=True, orderBy='startTime').execute()
+        except HttpError:
+            continue
+        events.extend(events_result.get('items', []))
     return events

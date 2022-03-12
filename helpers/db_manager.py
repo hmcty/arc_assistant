@@ -25,7 +25,7 @@ def init_db():
             "member_id INTEGER, guild_id INTEGER, channel_id INTEGER) WITHOUT ROWID")
 
         # Currency table
-        c.execute("CREATE TABLE IF NOT EXISTS currency(member_id INTEGER PRIMARY KEY, balance INTEGER)")
+        c.execute("CREATE TABLE IF NOT EXISTS currency(member_id INTEGER PRIMARY KEY, balance REAL)")
 
         # Verification table
         c.execute("CREATE TABLE IF NOT EXISTS verification(guild_id INT, " \
@@ -44,6 +44,14 @@ def init_db():
 
         # Backlog table
         c.execute("CREATE TABLE IF NOT EXISTS backlog(id INTEGER PRIMARY KEY, item TEXT)")
+
+        # Calendar table
+        c.execute("CREATE TABLE IF NOT EXISTS calendar(guild_id INTEGER, " \
+            "channel_id INTEGER, calendar_id TEXT)")
+
+        # Bounty table
+        c.execute("CREATE TABLE IF NOT EXISTS bounty(title TEXT, " \
+            "owner_id INT, guild_id INT, channel_id INT, message_id INT, amt REAL)")
 
 #
 # Define database models
@@ -66,14 +74,14 @@ class MemberModel(object):
                 return MemberModel(rowid, member_id, guild_id, verified, code)
             else:
                 c.execute(
-                    "INSERT INTO member VALUES (?, ?, ?, ?, ?)",
-                    (member_id, guild_id, 0, 0, 0)
+                    "INSERT INTO member VALUES (?, ?, ?, ?)",
+                    (member_id, guild_id, 0, 0)
                 )
                 con.commit()
                 con.close()
 
-                return MemberModel(c.lastrowid, member_id, guild_id, 0, 0, 0)
-        except sqlite3.Error as e:
+                return MemberModel(c.lastrowid, member_id, guild_id, 0, 0)
+        except sqlite3.Error:
             return None
 
     @staticmethod
@@ -145,10 +153,10 @@ class CurrencyModel(object):
             ).fetchone()
             
             if result is None:
-                balance = 0
+                balance = 0.0
                 c.execute(
                     "INSERT INTO currency VALUES (?, ?)",
-                    (member_id, 0)
+                    (member_id, balance)
                 )
             else:
                 balance = result[1]
@@ -156,7 +164,7 @@ class CurrencyModel(object):
             return balance
     
     @staticmethod
-    def update_balance(member_id: int, balance: int):
+    def update_balance(member_id: int, balance: float):
         with open_db() as c:
             c.execute(
                 "UPDATE currency SET balance=(?) WHERE member_id=(?)",
@@ -178,7 +186,7 @@ class ARCdleModel(object):
     @staticmethod
     def clear_games():
         with open_db() as c:
-            result = c.execute(
+            c.execute(
                 """
                 DELETE FROM arcdle
                 """,
@@ -189,7 +197,7 @@ class ARCdleModel(object):
         with open_db() as c:
             result = c.execute(
                 """
-                SELECT rowid, message_id, visible, hidden, status
+                SELECT arcdle.rowid, message_id, visible, hidden, status
                 FROM arcdle
                 INNER JOIN member_arcdle on member_arcdle.arcdle_rowid = arcdle.rowid
                 WHERE status=0 AND member_id=(?)
@@ -396,3 +404,130 @@ class VerificationModel(object):
         self.guild_id = guild_id
         self.role_id = role_id
         self.domain = domain
+
+class CalendarModel(object):
+    @staticmethod
+    def get_all():
+        with open_db() as c:
+            results = c.execute("SELECT * FROM calendar").fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get_by_guild(guild_id: int):
+        with open_db() as c:
+            results = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?)
+                """,
+                (guild_id,)
+            ).fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get_by_channel(guild_id: int, channel_id: int):
+        with open_db() as c:
+            results = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?) AND channel_id=(?)
+                """,
+                (guild_id, channel_id)
+            ).fetchall()
+            return list(map(lambda x: CalendarModel(x[0], x[1], x[2]), results))
+
+    @staticmethod
+    def get(guild_id: int, channel_id: int, calendar_id: str):
+        with open_db() as c:
+            result = c.execute(
+                """
+                SELECT *
+                FROM calendar
+                WHERE guild_id=(?) AND channel_id=(?)
+                AND calendar_id=(?)
+                """,
+                (guild_id, channel_id, calendar_id)
+            ).fetchone()
+            if result:
+                return CalendarModel(result[0], result[1], result[2])
+            else:
+                return None
+
+    @staticmethod
+    def add(guild_id: int, channel_id: int, calendar_id: str):
+        with open_db() as c:
+            c.execute(
+                "INSERT OR IGNORE INTO calendar (guild_id, channel_id, calendar_id) " \
+                "VALUES (?, ?, ?)",
+                (guild_id, channel_id, calendar_id)
+            )
+
+    def __init__(self, guild_id: int, channel_id: int, calendar_id: str):
+        self.guild_id = guild_id
+        self.channel_id = channel_id
+        self.calendar_id = calendar_id
+
+    def remove(self):
+        with open_db() as c:
+            c.execute(
+                "DELETE FROM calendar " \
+                "WHERE guild_id=(?) AND channel_id=(?) AND calendar_id=(?)",
+                (self.guild_id, self.channel_id, self.calendar_id)
+            )
+
+class BountyModel(object):
+    @staticmethod
+    def get(title: str):
+        with open_db() as c:
+            result = c.execute(
+                "SELECT * FROM bounty WHERE title like (?)",
+                (title,)
+            ).fetchone()
+
+            if result:
+                return BountyModel(result[0], result[1], result[2],
+                    result[3], result[4], result[5])
+            else:
+                return None
+
+    @staticmethod
+    def create(title: str, owner_id: int, guild_id: int, channel_id: int,
+        message_id: int, amt: float):
+        with open_db() as c:
+            c.execute(
+                "INSERT INTO bounty (title, owner_id, guild_id, channel_id, message_id, amt) " \
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (title, owner_id, guild_id, channel_id, message_id, amt)
+            )
+
+    def __init__(self, title: str, owner_id: int, guild_id: int, channel_id: int,
+        message_id: int, amt: float):
+        self.title = title
+        self.owner_id = owner_id
+        self.guild_id = guild_id
+        self.channel_id = channel_id
+        self.message_id = message_id
+        self.amt = amt
+
+    def contribute(self, amt: float):
+        with open_db() as c:
+            c.execute(
+                """
+                UPDATE bounty SET amt=(?) WHERE
+                "title like (?) AND owner_id=(?)
+                """,
+                (amt + self.amt, self.title, self.owner_id)
+            )
+        self.amt += amt
+
+    def complete(self):
+        with open_db() as c:
+            c.execute(
+                """
+                DELETE FROM bounty WHERE
+                title like (?) AND owner_id=(?)
+                """,
+                (self.title, self.owner_id)
+            )
