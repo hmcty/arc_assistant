@@ -15,10 +15,10 @@ type DiscordSession struct {
 	registeredCommands []*dg.ApplicationCommand
 }
 
-func NewDiscordSession(commands []models.Command, config *models.Config, db *models.DbClient) (*DiscordSession, error) {
+func NewDiscordSession(commands []models.Command, config models.Config) (*DiscordSession, error) {
 	discordSession := new(DiscordSession)
 
-	session, err := dg.New("Bot OTI5MjI3NjUzMTc1NzI2MTgx.YdkQsA.IMtmD_QRM5E8Uo7_fSxyZoIYc5s")
+	session, err := dg.New("Bot ")
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func NewDiscordSession(commands []models.Command, config *models.Config, db *mod
 	discordHandlers := map[string]DiscordHandler{}
 	for i, v := range commands {
 		discordCommands[i] = createDiscordCommand(v)
-		discordHandlers[v.Name()] = createDiscordHandler(v)
+		discordHandlers[v.Name()] = createDiscordHandler(config, v)
 	}
 
 	discordSession.Session.AddHandler(func(s *dg.Session, i *dg.InteractionCreate) {
@@ -47,7 +47,7 @@ func NewDiscordSession(commands []models.Command, config *models.Config, db *mod
 		cmd, err := discordSession.Session.ApplicationCommandCreate(
 			discordSession.Session.State.User.ID, "", v)
 		if err != nil {
-			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
+			log.Panicf("cannot create '%v' command: %v", v.Name, err)
 		}
 		discordSession.registeredCommands[i] = cmd
 	}

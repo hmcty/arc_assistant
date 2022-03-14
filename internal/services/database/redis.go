@@ -1,15 +1,17 @@
 package database
 
 import (
+	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/hmccarty/arc-assistant/internal/models"
 )
 
-func OpenRedisClient(config models.Config) (*DbClient, error) {
+func OpenRedisClient(config models.Config) (models.DbClient, error) {
 	return &RedisClient{
-		Client: redis.NewClient(&redis.Options{
+		client: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
 			Password: "", // no password set
 			DB:       0,  // use default DB
@@ -18,14 +20,23 @@ func OpenRedisClient(config models.Config) (*DbClient, error) {
 }
 
 type RedisClient struct {
-	Client *redis.Client
+	client *redis.Client
 }
 
-func (r *RedisClient) GetUserBalance(userID string) (float32, error) {
+func (r RedisClient) GetUserBalance(userID string) (float32, error) {
 	key := fmt.Sprintf("user:%s:balance", userID)
-	val, err := r.Client.Get(key).Result()
+	ctx := context.Background()
+	val, err := r.client.Get(ctx, key).Result()
 	if err != nil {
 		return 0, err
 	}
-	return val, nil
+
+	balance, err := strconv.ParseFloat(val, 32)
+	return float32(balance), nil
+}
+
+func (r RedisClient) SetUserBalance(userID string, balance float32) error {
+	key := fmt.Sprintf("user:%s:balance", userID)
+	ctx := context.Background()
+	return r.client.Set(ctx, key, balance, 0).Err()
 }

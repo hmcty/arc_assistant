@@ -5,6 +5,7 @@ import (
 
 	dg "github.com/bwmarrin/discordgo"
 	"github.com/hmccarty/arc-assistant/internal/models"
+	"github.com/hmccarty/arc-assistant/internal/services/database"
 )
 
 func createDiscordCommand(command models.Command) *dg.ApplicationCommand {
@@ -23,7 +24,7 @@ func createOption(discordOption *dg.ApplicationCommandInteractionDataOption) (mo
 	return option, nil
 }
 
-func createDiscordHandler(command models.Command, config *models.Config) DiscordHandler {
+func createDiscordHandler(config models.Config, command models.Command) DiscordHandler {
 	return func(s *dg.Session, i *dg.InteractionCreate) {
 		options := make([]models.CommandOption, len(i.ApplicationCommandData().Options))
 		for i, v := range i.ApplicationCommandData().Options {
@@ -34,7 +35,8 @@ func createDiscordHandler(command models.Command, config *models.Config) Discord
 			options[i] = option
 		}
 
-		content, _ := command.Run(config, options)
+		client, _ := database.OpenClient(config)
+		content := command.Run(config, client, options)
 		s.InteractionRespond(i.Interaction, &dg.InteractionResponse{
 			Type: dg.InteractionResponseChannelMessageWithSource,
 			Data: &dg.InteractionResponseData{

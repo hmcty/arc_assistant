@@ -8,21 +8,22 @@ import (
 
 	"github.com/hmccarty/arc-assistant/internal/commands"
 	"github.com/hmccarty/arc-assistant/internal/models"
+	"github.com/hmccarty/arc-assistant/internal/services/config"
 	"github.com/hmccarty/arc-assistant/internal/services/discord"
 )
 
 var (
 	commandList = []models.Command{
-		commands.Status,
+		commands.SetBalance{},
+		commands.GetBalance{},
 	}
 )
 
 func main() {
-	session, err := discord.CreateSession()
+	session, err := discord.NewDiscordSession(commandList, config.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	session.InitCommands(commandList)
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)

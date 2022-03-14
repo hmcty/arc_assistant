@@ -1,14 +1,10 @@
 package models
 
-import (
-	"github.com/hmccarty/arc-assistant/internal/services/config"
-)
-
 type Command interface {
 	Name() string
 	Description() string
 	Options() []CommandOption
-	Run(config *config.Config, options []CommandOption) string
+	Run(config Config, client DbClient, options []CommandOption) string
 }
 
 type CommandOptionType uint8

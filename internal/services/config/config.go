@@ -2,6 +2,6 @@ package config
 
 type Config struct{}
 
-func NewConfig() (*Config, error) {
-	return &Config{}, nil
+func (c Config) GetDatabaseType() string {
+	return "redis"
 }
