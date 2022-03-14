@@ -4,17 +4,17 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/hmccarty/arc-assistant/internal/services/config"
+	"github.com/hmccarty/arc-assistant/internal/models"
 )
 
-func OpenClient(config *config.Config) *RedisClient {
+func OpenRedisClient(config models.Config) (*DbClient, error) {
 	return &RedisClient{
 		Client: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
 			Password: "", // no password set
 			DB:       0,  // use default DB
 		}),
-	}
+	}, nil
 }
 
 type RedisClient struct {

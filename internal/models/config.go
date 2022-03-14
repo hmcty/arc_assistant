@@ -1,3 +1,5 @@
 package models
 
-type Config interface{}
+type Config interface {
+	GetDatabaseType() string
+}

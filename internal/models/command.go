@@ -8,7 +8,7 @@ type Command interface {
 	Name() string
 	Description() string
 	Options() []CommandOption
-	Run(config *config.Config, client *DbClient, options []CommandOption) string
+	Run(config *config.Config, options []CommandOption) string
 }
 
 type CommandOptionType uint8
