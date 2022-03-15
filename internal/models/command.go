@@ -4,7 +4,7 @@ type Command interface {
 	Name() string
 	Description() string
 	Options() []CommandOption
-	Run(config Config, client DbClient, options []CommandOption) string
+	Run(options []CommandOption) string
 }
 
 type CommandOptionType uint8

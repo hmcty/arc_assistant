@@ -4,6 +4,7 @@ import (
 	"log"
 
 	dg "github.com/bwmarrin/discordgo"
+	"github.com/hmccarty/arc-assistant/internal/models"
 	m "github.com/hmccarty/arc-assistant/internal/models"
 	c "github.com/hmccarty/arc-assistant/internal/services/config"
 )
@@ -15,7 +16,7 @@ type DiscordSession struct {
 	registeredCommands []*dg.ApplicationCommand
 }
 
-func NewDiscordSession(commands []m.Command, config c.Config) (*DiscordSession, error) {
+func NewDiscordSession(config *c.Config, commands []m.Command) (*DiscordSession, error) {
 	discordSession := new(DiscordSession)
 
 	session, err := dg.New(config.DiscordToken)
@@ -28,7 +29,7 @@ func NewDiscordSession(commands []m.Command, config c.Config) (*DiscordSession, 
 	discordHandlers := map[string]DiscordHandler{}
 	for i, v := range commands {
 		discordCommands[i] = appFromCommand(v)
-		discordHandlers[v.Name()] = createDiscordHandler(config, v)
+		discordHandlers[v.Name()] = createDiscordHandler(v)
 	}
 
 	discordSession.Session.AddHandler(func(s *dg.Session, i *dg.InteractionCreate) {
@@ -96,7 +97,7 @@ func optionFromInteractionData(interactionData *dg.ApplicationCommandInteraction
 	return option, nil
 }
 
-func createDiscordHandler(config *c.Config, openClient m.OpenClient, command *m.Command) DiscordHandler {
+func createDiscordHandler(command m.Command) DiscordHandler {
 	return func(s *dg.Session, i *dg.InteractionCreate) {
 		options := make([]m.CommandOption, len(i.ApplicationCommandData().Options))
 		for i, v := range i.ApplicationCommandData().Options {
@@ -107,8 +108,7 @@ func createDiscordHandler(config *c.Config, openClient m.OpenClient, command *m.
 			options[i] = option
 		}
 
-		client, _ := openClient(config)
-		content := command.Run(options, client, config)
+		content := command.Run(options)
 		s.InteractionRespond(i.Interaction, &dg.InteractionResponse{
 			Type: dg.InteractionResponseChannelMessageWithSource,
 			Data: &dg.InteractionResponseData{

@@ -4,10 +4,17 @@ import (
 	"fmt"
 
 	m "github.com/hmccarty/arc-assistant/internal/models"
-	c "github.com/hmccarty/arc-assistant/internal/services/config"
 )
 
-type SetBalance struct{}
+type SetBalance struct {
+	createDbClient func() m.DbClient
+}
+
+func NewSetBalanceCommand(createDbClient func() m.DbClient) m.Command {
+	return &SetBalance{
+		createDbClient: createDbClient,
+	}
+}
 
 func (_ *SetBalance) Name() string {
 	return "setbalance"
@@ -32,7 +39,7 @@ func (_ *SetBalance) Options() []m.CommandOption {
 	}
 }
 
-func (_ *SetBalance) Run(opts []m.CommandOption, conf c.Config, client m.DbClient) string {
+func (command *SetBalance) Run(opts []m.CommandOption) string {
 	if len(opts) != 2 {
 		return "Invalid number of options"
 	}
@@ -48,6 +55,7 @@ func (_ *SetBalance) Run(opts []m.CommandOption, conf c.Config, client m.DbClien
 		}
 	}
 
+	client := command.createDbClient()
 	client.SetUserBalance(userID, amount)
 	balance, _ := client.GetUserBalance(userID)
 	return fmt.Sprintf("You have %f in your account", balance)

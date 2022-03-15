@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -10,19 +11,25 @@ import (
 	"github.com/hmccarty/arc-assistant/internal/models"
 	"github.com/hmccarty/arc-assistant/internal/services/config"
 	"github.com/hmccarty/arc-assistant/internal/services/discord"
-)
-
-var (
-	commandList = []models.Command{
-		commands.SetBalance{},
-		commands.GetBalance{},
-	}
+	"github.com/hmccarty/arc-assistant/internal/services/redis"
 )
 
 func main() {
 	conf, err := config.NewConfig("config/main.yml")
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	session, err := discord.NewDiscordSession(commandList, conf)
+	createDbClient := func() models.DbClient {
+		return redis.OpenRedisClient(conf)
+	}
+
+	var commandList = []models.Command{
+		commands.NewGetBalanceCommand(createDbClient),
+		commands.NewSetBalanceCommand(createDbClient),
+	}
+
+	session, err := discord.NewDiscordSession(conf, commandList)
 	if err != nil {
 		log.Fatal(err)
 	}
