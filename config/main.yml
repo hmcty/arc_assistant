@@ -1,1 +1,2 @@
-discordapikey: "key"
+discord_token: "BOT TOKEN"
+database_type: "redis"

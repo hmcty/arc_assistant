@@ -8,18 +8,32 @@ import (
 	"github.com/hmccarty/arc-assistant/internal/services/database"
 )
 
-func createDiscordCommand(command models.Command) *dg.ApplicationCommand {
+func appFromCommand(command models.Command) *dg.ApplicationCommand {
+	var appOptions []*dg.ApplicationCommandOption = nil
+	if len(command.Options()) > 0 {
+		appOptions = make([]*dg.ApplicationCommandOption, len(command.Options()))
+		for i, v := range command.Options() {
+			appOptions[i] = &dg.ApplicationCommandOption{
+				Type:        dg.ApplicationCommandOptionType(v.Type),
+				Name:        v.Name,
+				Required:    v.Required,
+				Description: "Description",
+			}
+		}
+	}
+
 	return &dg.ApplicationCommand{
 		Name:        command.Name(),
 		Description: command.Description(),
+		Options:     appOptions,
 	}
 }
 
-func createOption(discordOption *dg.ApplicationCommandInteractionDataOption) (models.CommandOption, error) {
+func optionFromInteractionData(interactionData *dg.ApplicationCommandInteractionDataOption) (models.CommandOption, error) {
 	option := models.CommandOption{
-		Name:  discordOption.Name,
-		Type:  models.CommandOptionType(discordOption.Type),
-		Value: discordOption.Value,
+		Name:  interactionData.Name,
+		Type:  models.CommandOptionType(interactionData.Type),
+		Value: interactionData.Value,
 	}
 	return option, nil
 }
@@ -28,7 +42,7 @@ func createDiscordHandler(config models.Config, command models.Command) DiscordH
 	return func(s *dg.Session, i *dg.InteractionCreate) {
 		options := make([]models.CommandOption, len(i.ApplicationCommandData().Options))
 		for i, v := range i.ApplicationCommandData().Options {
-			option, err := createOption(v)
+			option, err := optionFromInteractionData(v)
 			if err != nil {
 				log.Println(err)
 			}

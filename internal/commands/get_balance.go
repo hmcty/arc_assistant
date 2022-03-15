@@ -8,19 +8,30 @@ import (
 
 type GetBalance struct{}
 
-func (t GetBalance) Name() string {
+func (c GetBalance) Name() string {
 	return "getbalance"
 }
 
-func (t GetBalance) Description() string {
+func (c GetBalance) Description() string {
 	return "GetBalance for the tip!"
 }
 
-func (t GetBalance) Options() []models.CommandOption {
-	return nil
+func (c GetBalance) Options() []models.CommandOption {
+	return []models.CommandOption{
+		{
+			Name:     "user",
+			Type:     models.UserOption,
+			Required: true,
+		},
+	}
 }
 
-func (t GetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
-	balance, _ := client.GetUserBalance("317846778848346112")
+func (c GetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
+	if len(options) != 1 {
+		return "Invalid number of options"
+	}
+
+	userID := options[0].Value.(string)
+	balance, _ := client.GetUserBalance(userID)
 	return fmt.Sprintf("You have %f in your account", balance)
 }

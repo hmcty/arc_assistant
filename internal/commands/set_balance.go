@@ -8,19 +8,46 @@ import (
 
 type SetBalance struct{}
 
-func (t SetBalance) Name() string {
+func (c SetBalance) Name() string {
 	return "setbalance"
 }
 
-func (t SetBalance) Description() string {
+func (c SetBalance) Description() string {
 	return "SetBalance for the tip!"
 }
 
-func (t SetBalance) Options() []models.CommandOption {
-	return nil
+func (c SetBalance) Options() []models.CommandOption {
+	return []models.CommandOption{
+		{
+			Name:     "user",
+			Type:     models.UserOption,
+			Required: true,
+		},
+		{
+			Name:     "amount",
+			Type:     models.NumberOption,
+			Required: true,
+		},
+	}
 }
 
-func (t SetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
-	balance, _ := client.GetUserBalance("317846778848346112")
+func (c SetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
+	if len(options) != 2 {
+		return "Invalid number of options"
+	}
+
+	var userID string
+	var amount float64
+	for _, option := range options {
+		switch option.Name {
+		case "user":
+			userID = option.Value.(string)
+		case "amount":
+			amount = option.Value.(float64)
+		}
+	}
+
+	client.SetUserBalance(userID, amount)
+	balance, _ := client.GetUserBalance(userID)
 	return fmt.Sprintf("You have %f in your account", balance)
 }

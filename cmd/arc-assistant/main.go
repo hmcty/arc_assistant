@@ -20,7 +20,9 @@ var (
 )
 
 func main() {
-	session, err := discord.NewDiscordSession(commandList, config.Config{})
+	conf, err := config.NewConfig("config/main.yml")
+
+	session, err := discord.NewDiscordSession(commandList, conf)
 	if err != nil {
 		log.Fatal(err)
 	}

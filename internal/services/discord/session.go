@@ -18,7 +18,7 @@ type DiscordSession struct {
 func NewDiscordSession(commands []models.Command, config models.Config) (*DiscordSession, error) {
 	discordSession := new(DiscordSession)
 
-	session, err := dg.New("Bot ")
+	session, err := dg.New(config.GetDiscordToken())
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func NewDiscordSession(commands []models.Command, config models.Config) (*Discor
 	discordCommands := make([]*dg.ApplicationCommand, len(commands))
 	discordHandlers := map[string]DiscordHandler{}
 	for i, v := range commands {
-		discordCommands[i] = createDiscordCommand(v)
+		discordCommands[i] = appFromCommand(v)
 		discordHandlers[v.Name()] = createDiscordHandler(config, v)
 	}
 
@@ -45,7 +45,7 @@ func NewDiscordSession(commands []models.Command, config models.Config) (*Discor
 	discordSession.registeredCommands = make([]*dg.ApplicationCommand, len(commands))
 	for i, v := range discordCommands {
 		cmd, err := discordSession.Session.ApplicationCommandCreate(
-			discordSession.Session.State.User.ID, "", v)
+			"929227653175726181", "948455727020802089", v)
 		if err != nil {
 			log.Panicf("cannot create '%v' command: %v", v.Name, err)
 		}
