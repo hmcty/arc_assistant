@@ -3,42 +3,43 @@ package commands
 import (
 	"fmt"
 
-	"github.com/hmccarty/arc-assistant/internal/models"
+	m "github.com/hmccarty/arc-assistant/internal/models"
+	c "github.com/hmccarty/arc-assistant/internal/services/config"
 )
 
 type SetBalance struct{}
 
-func (c SetBalance) Name() string {
+func (_ *SetBalance) Name() string {
 	return "setbalance"
 }
 
-func (c SetBalance) Description() string {
+func (_ *SetBalance) Description() string {
 	return "SetBalance for the tip!"
 }
 
-func (c SetBalance) Options() []models.CommandOption {
-	return []models.CommandOption{
+func (_ *SetBalance) Options() []m.CommandOption {
+	return []m.CommandOption{
 		{
 			Name:     "user",
-			Type:     models.UserOption,
+			Type:     m.UserOption,
 			Required: true,
 		},
 		{
 			Name:     "amount",
-			Type:     models.NumberOption,
+			Type:     m.NumberOption,
 			Required: true,
 		},
 	}
 }
 
-func (c SetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
-	if len(options) != 2 {
+func (_ *SetBalance) Run(opts []m.CommandOption, conf c.Config, client m.DbClient) string {
+	if len(opts) != 2 {
 		return "Invalid number of options"
 	}
 
 	var userID string
 	var amount float64
-	for _, option := range options {
+	for _, option := range opts {
 		switch option.Name {
 		case "user":
 			userID = option.Value.(string)

@@ -3,35 +3,36 @@ package commands
 import (
 	"fmt"
 
-	"github.com/hmccarty/arc-assistant/internal/models"
+	m "github.com/hmccarty/arc-assistant/internal/models"
+	c "github.com/hmccarty/arc-assistant/internal/services/config"
 )
 
 type GetBalance struct{}
 
-func (c GetBalance) Name() string {
+func (_ *GetBalance) Name() string {
 	return "getbalance"
 }
 
-func (c GetBalance) Description() string {
+func (_ *GetBalance) Description() string {
 	return "GetBalance for the tip!"
 }
 
-func (c GetBalance) Options() []models.CommandOption {
-	return []models.CommandOption{
+func (_ *GetBalance) Options() []m.CommandOption {
+	return []m.CommandOption{
 		{
 			Name:     "user",
-			Type:     models.UserOption,
+			Type:     m.UserOption,
 			Required: true,
 		},
 	}
 }
 
-func (c GetBalance) Run(config models.Config, client models.DbClient, options []models.CommandOption) string {
-	if len(options) != 1 {
+func (_ *GetBalance) Run(opts []m.CommandOption, conf c.Config, client m.DbClient) string {
+	if len(opts) != 1 {
 		return "Invalid number of options"
 	}
 
-	userID := options[0].Value.(string)
+	userID := opts[0].Value.(string)
 	balance, _ := client.GetUserBalance(userID)
 	return fmt.Sprintf("You have %f in your account", balance)
 }

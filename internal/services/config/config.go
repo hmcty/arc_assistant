@@ -7,8 +7,10 @@ import (
 )
 
 type Config struct {
-	DatabaseType string `yaml:"database_type"`
-	DiscordToken string `yaml:"discord_token"`
+	DatabaseType   string `yaml:"database_type"`
+	DiscordToken   string `yaml:"discord_token"`
+	DiscordAppID   string `yaml:"discord_app_id"`
+	DiscordGuildID string `yaml:"discord_guild_id"`
 }
 
 func NewConfig(filename string) (Config, error) {
@@ -20,12 +22,4 @@ func NewConfig(filename string) (Config, error) {
 		return Config{}, err
 	}
 	return c, nil
-}
-
-func (c Config) GetDatabaseType() string {
-	return c.DatabaseType
-}
-
-func (c Config) GetDiscordToken() string {
-	return c.DiscordToken
 }

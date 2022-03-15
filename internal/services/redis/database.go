@@ -1,15 +1,17 @@
 package database
 
 import (
-	"context"
 	"fmt"
+
+	"context"
 	"strconv"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/hmccarty/arc-assistant/internal/models"
+	m "github.com/hmccarty/arc-assistant/internal/models"
+	c "github.com/hmccarty/arc-assistant/internal/services/config"
 )
 
-func OpenRedisClient(config models.Config) (models.DbClient, error) {
+func OpenRedisClient(config *c.Config) (m.DbClient, error) {
 	return &RedisClient{
 		client: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
@@ -23,7 +25,7 @@ type RedisClient struct {
 	client *redis.Client
 }
 
-func (r RedisClient) GetUserBalance(userID string) (float64, error) {
+func (r *RedisClient) GetUserBalance(userID string) (float64, error) {
 	key := fmt.Sprintf("user:%s:balance", userID)
 	ctx := context.Background()
 	val, err := r.client.Get(ctx, key).Result()
@@ -35,7 +37,7 @@ func (r RedisClient) GetUserBalance(userID string) (float64, error) {
 	return balance, nil
 }
 
-func (r RedisClient) SetUserBalance(userID string, balance float64) error {
+func (r *RedisClient) SetUserBalance(userID string, balance float64) error {
 	key := fmt.Sprintf("user:%s:balance", userID)
 	ctx := context.Background()
 	return r.client.Set(ctx, key, balance, 0).Err()
